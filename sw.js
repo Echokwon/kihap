@@ -1,7 +1,7 @@
 // 기합 — 오프라인 저장. 파일을 고치면 VERSION 을 올려 주세요.
-const VERSION = 'kihap-v3';
+const VERSION = 'kihap-v4';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg',
-  './shared/base.css', './shared/core.js', './shared/db.js',
+  './shared/base.css', './shared/core.js', './shared/icons.js', './shared/db.js',
   './tools/', './tools/tools.css', './tools/tools.js',
   './manage/', './manage/manage.js', './attend/', './attend/attend.js',
   './planner/', './planner/planner.js', './bus/', './bus/bus.js',
@@ -20,7 +20,7 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   e.respondWith(fetch(req).then(r => {
-    if (r && r.ok && (new URL(req.url).origin === location.origin || /fonts\.(googleapis|gstatic)\.com/.test(req.url))) {
+    if (r && r.ok && (new URL(req.url).origin === location.origin || /fonts\.(googleapis|gstatic)\.com|cdn\.jsdelivr\.net\/gh\/orioncactus\/pretendard/.test(req.url))) {
       const copy = r.clone(); caches.open(VERSION).then(c => c.put(req, copy));
     }
     return r;

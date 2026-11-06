@@ -9,50 +9,52 @@
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
 <link rel="stylesheet" href="../shared/base.css">
 <script src="../shared/core.js"></script>
+<script src="../shared/icons.js"></script>
 <style>
   .run-page { max-width: 1280px; margin: 0 auto; padding: 14px 16px 48px; display: grid; gap: 14px; }
-  .arena { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: calc(100vh - 150px); border-radius: 22px; overflow: hidden; background: #bfe3ff; box-shadow: var(--shadow); user-select: none; -webkit-user-select: none; touch-action: none; }
+  .arena { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: calc(100vh - 150px); border-radius: 14px; overflow: hidden; background: #bfe3ff; box-shadow: var(--shadow); user-select: none; -webkit-user-select: none; touch-action: none; }
   @media (max-width: 900px) and (orientation: portrait) { .arena { aspect-ratio: auto; height: min(78vh, 720px); max-height: none; } }
   .arena:fullscreen { border-radius: 0; max-height: none; height: 100vh; aspect-ratio: auto; }
   #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
   /* 위쪽 숫자판 */
   .hud { position: absolute; top: 0; left: 0; right: 0; display: flex; gap: 10px; padding: 12px; align-items: flex-start; pointer-events: none; }
-  .hud .pane { background: rgba(22, 33, 58, .82); color: #fff; border-radius: 14px; padding: 6px 14px; text-align: center; }
-  .hud .pane b { display: block; font-family: var(--f-display); font-size: clamp(1.4rem, 3.6vw, 2.8rem); line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .hud .pane { background: rgba(22, 33, 58, .82); color: #fff; border-radius: 8px; padding: 6px 14px; text-align: center; }
+  .hud .pane b { display: block; font-family: var(--f-num); font-weight: 700; font-size: clamp(1.6rem, 4vw, 3.1rem); line-height: 1.05; font-variant-numeric: tabular-nums; }
   .hud .pane span { font-size: clamp(.65rem, 1.3vw, .9rem); font-weight: 700; opacity: .8; }
   .hud .grow { flex: 1; }
   .meter { width: clamp(110px, 18vw, 220px); }
-  .meter .track { height: 12px; border-radius: 99px; background: rgba(255, 255, 255, .2); overflow: hidden; margin-top: 4px; }
-  .meter .track i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #18995a, #e8a500, #d8323c); transition: width .1s; }
+  .meter .track { height: 10px; border-radius: 3px; background: rgba(255, 255, 255, .2); overflow: hidden; margin-top: 4px; }
+  .meter .track i { display: block; height: 100%; width: 0; border-radius: 3px; background: #18995a; transition: width .1s; }
 
   /* 카메라 미리보기 (오른쪽 아래) */
-  .cam { position: absolute; right: 12px; bottom: 12px; width: clamp(120px, 20%, 240px); aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden; background: #000; border: 3px solid rgba(255, 255, 255, .85); }
+  .cam { position: absolute; right: 12px; bottom: 12px; width: clamp(120px, 20%, 240px); aspect-ratio: 4 / 3; border-radius: 10px; overflow: hidden; background: #000; border: 2px solid rgba(255, 255, 255, .85); }
   .cam video, .cam canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
   .cam .cam-tip { position: absolute; left: 0; right: 0; bottom: 0; padding: 3px 6px; font-size: .72rem; font-weight: 700; color: #fff; background: rgba(0, 0, 0, .6); text-align: center; }
 
   /* 가운데 큰 글자 (카운트다운 · 안내) */
   .center { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
-  .big { font-family: var(--f-display); font-size: clamp(5rem, 22vw, 16rem); color: #fff; -webkit-text-stroke: 4px #16213a; paint-order: stroke; text-shadow: 0 8px 0 rgba(22, 33, 58, .35); }
-  .big.pop { animation: pop .5s; }
-  @keyframes pop { 0% { transform: scale(.4); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
-  .float { position: absolute; font-family: var(--f-display); font-size: clamp(1.4rem, 3.4vw, 2.6rem); color: #fff; -webkit-text-stroke: 2px #16213a; paint-order: stroke; animation: rise 1s forwards; pointer-events: none; }
+  .big { font-family: var(--f-num); font-weight: 700; font-size: clamp(6rem, 26vw, 19rem); line-height: 1; color: #fff; -webkit-text-stroke: 4px #16213a; paint-order: stroke; }
+  .big.pop { animation: pop .3s ease-out; }
+  @keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+  .float { position: absolute; font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(1.3rem, 3vw, 2.3rem); color: #fff; -webkit-text-stroke: 2px #16213a; paint-order: stroke; animation: rise 1s forwards; pointer-events: none; }
   @keyframes rise { to { transform: translateY(-70px); opacity: 0; } }
-  .hint-line { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); background: rgba(22, 33, 58, .82); color: #fff; padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: clamp(.8rem, 1.6vw, 1.05rem); white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+  .hint-line { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); background: rgba(22, 33, 58, .82); color: #fff; padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: clamp(.8rem, 1.6vw, 1.05rem); white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 
   /* 메뉴 · 결과 판 */
   .sheet { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(14, 20, 36, .55); }
-  .sheet-card { width: min(34rem, 100%); max-height: 100%; overflow: auto; background: var(--bg-2); color: var(--ink); border-radius: 22px; padding: clamp(16px, 3vw, 26px); display: grid; gap: 14px; text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, .35); }
-  .sheet-card h2 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); }
+  .sheet-card { width: min(34rem, 100%); max-height: 100%; overflow: auto; background: var(--bg-2); color: var(--ink); border-radius: 14px; padding: clamp(16px, 3vw, 26px); display: grid; gap: 14px; text-align: center; box-shadow: 0 10px 30px rgba(0, 0, 0, .3); }
+  .sheet-card h2 { font-size: clamp(1.6rem, 4vw, 2.3rem); display: flex; align-items: center; justify-content: center; gap: .45rem; }
   .sheet-card .row { justify-content: center; }
   .modes { display: flex; gap: 10px; justify-content: center; }
   .modes .chip { min-height: 52px; font-size: 1.1rem; padding: 0 1.4em; }
-  .result-num { font-family: var(--f-display); font-size: clamp(3rem, 10vw, 5.5rem); line-height: 1; color: var(--red); }
+  .result-num { font-family: var(--f-num); font-weight: 700; font-size: clamp(3.6rem, 12vw, 6.5rem); line-height: 1; color: var(--red); }
   .board { text-align: left; margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
-  .board li { display: grid; grid-template-columns: 2.2em 1fr auto; gap: 8px; padding: 6px 10px; border-radius: 10px; background: var(--bg-3); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .board li { display: grid; grid-template-columns: 2.2em 1fr auto; gap: 8px; padding: 6px 10px; border-radius: 6px; background: var(--bg-3); font-weight: 700; font-variant-numeric: tabular-nums; }
   .board li.me { background: var(--red); color: #fff; }
   .board li span:first-child { color: var(--muted); }
   .board li.me span:first-child { color: #fff; }
@@ -62,7 +64,7 @@
 
   /* 카메라 없을 때 화면 버튼 (태블릿) */
   .pads { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 10px; }
-  .pads button { min-height: 84px; border-radius: 18px; border: 2px solid var(--line); background: var(--bg-2); font-family: var(--f-display); font-size: 1.6rem; cursor: pointer; touch-action: manipulation; }
+  .pads button { min-height: 84px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--bg-2); font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: 1.45rem; cursor: pointer; touch-action: manipulation; display: inline-flex; align-items: center; justify-content: center; gap: .4em; }
   .pads button:active { transform: scale(.96); background: var(--bg-3); }
   .pads .jump { background: var(--red); border-color: var(--red); color: #fff; }
   .under { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
@@ -87,35 +89,35 @@
     <!-- 시작 메뉴 -->
     <div class="sheet" id="menu">
       <div class="sheet-card">
-        <h2>🏃 모션 달리기</h2>
-        <p class="tip">카메라 앞에서 <b>제자리 달리기</b>를 하면 캐릭터가 달려요.<br><b>점프!</b> 하면 허들을 넘어요. 정해진 시간 동안 누가 멀리 갈까요?</p>
+        <h2><i data-icon="footprints"></i>모션 달리기</h2>
+        <p class="tip">카메라 앞에서 <b>제자리 달리기</b>를 하면 캐릭터가 달리고, <b>점프</b>하면 허들을 넘습니다.<br>정해진 시간 동안 가장 멀리 간 사람이 이깁니다.</p>
         <div class="modes" id="modes"><button class="chip on" data-s="30">30초</button><button class="chip" data-s="60">60초</button></div>
-        <div class="row"><button class="btn primary big" id="startCam">📷 카메라로 시작</button></div>
-        <div class="row"><button class="btn" id="startKey">⌨️ 카메라 없이 하기</button><button class="btn" id="showBoard">🏆 순위 보기</button></div>
-        <p class="tip" id="menuTip">몸 전체가 보이게 카메라에서 <b>2~3m 뒤로</b> 서 주세요. 처음엔 인식 모델(약 6MB)을 받아요.</p>
+        <div class="row"><button class="btn primary big" id="startCam"><i data-icon="camera"></i>카메라로 시작</button></div>
+        <div class="row"><button class="btn" id="startKey"><i data-icon="keyboard"></i>카메라 없이 하기</button><button class="btn" id="showBoard"><i data-icon="trophy"></i>순위 보기</button></div>
+        <p class="tip" id="menuTip">몸 전체가 보이도록 카메라에서 <b>2~3m 뒤</b>에 서세요. 처음 한 번은 인식 모델(약 6MB)을 내려받습니다.</p>
       </div>
     </div>
 
     <!-- 결과 -->
     <div class="sheet" id="result" hidden>
       <div class="sheet-card">
-        <h2 id="rTitle">완주!</h2>
+        <h2 id="rTitle">완주</h2>
         <div class="result-num" id="rDist">0m</div>
         <p class="tip" id="rSub"></p>
-        <div class="name-row" id="nameRow"><input id="rName" maxlength="12" placeholder="이름을 써 주세요" aria-label="이름"><button class="btn primary" id="rSave">순위 저장</button></div>
+        <div class="name-row" id="nameRow"><input id="rName" maxlength="12" placeholder="이름" aria-label="이름"><button class="btn primary" id="rSave">순위 저장</button></div>
         <ol class="board" id="rBoard"></ol>
-        <div class="row"><button class="btn primary big" id="again">다시 달리기</button><button class="btn big" id="toMenu">처음으로</button></div>
+        <div class="row"><button class="btn primary big" id="again"><i data-icon="rotate-ccw"></i>다시 달리기</button><button class="btn big" id="toMenu">처음으로</button></div>
       </div>
     </div>
   </div>
 
   <div class="under">
-    <p class="hint">키보드: <b>← →</b> (또는 A · L) 번갈아 누르면 달리기 · <b>스페이스</b>나 <b>↑</b>는 점프 · 전체 화면 버튼으로 TV에 크게 띄워요</p>
+    <p class="hint">키보드: <b>왼쪽·오른쪽 방향키</b>(또는 A·L)를 번갈아 누르면 달리고, <b>스페이스</b>나 <b>위쪽 방향키</b>는 점프입니다. TV에는 전체 화면으로 띄우세요.</p>
   </div>
   <div class="pads" id="pads" hidden>
-    <button id="padL" aria-label="왼발">👟 왼발</button>
-    <button id="padR" aria-label="오른발">오른발 👟</button>
-    <button class="jump" id="padJ" aria-label="점프">⬆ 점프</button>
+    <button id="padL" aria-label="왼발"><i data-icon="chevron-left"></i>왼발</button>
+    <button id="padR" aria-label="오른발">오른발<i data-icon="chevron-right"></i></button>
+    <button class="jump" id="padJ" aria-label="점프"><i data-icon="chevron-up"></i>점프</button>
   </div>
 </main>
 <script src="run.js"></script>

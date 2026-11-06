@@ -9,32 +9,35 @@
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
 <link rel="stylesheet" href="../shared/base.css">
 <script src="../shared/core.js"></script>
+<script src="../shared/icons.js"></script>
 <style>
   .setup { display: grid; gap: 14px; max-width: 760px; }
-  .stage { display: grid; gap: 14px; justify-items: center; text-align: center; padding: 22px 16px; border-radius: 24px; background: var(--bg-2); border: 1px solid var(--line); min-height: 60vh; align-content: center; }
+  .stage { display: grid; gap: 14px; justify-items: center; text-align: center; padding: 22px 16px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--line); min-height: 60vh; align-content: center; }
   .stage:fullscreen { border-radius: 0; }
-  .turn { font-family: var(--f-display); font-size: clamp(1.6rem, 4vw, 2.6rem); }
+  .turn { font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(1.6rem, 4vw, 2.6rem); }
   .turn b { color: var(--tc); }
-  .word { font-family: var(--f-display); font-size: clamp(3rem, 13vw, 9rem); line-height: 1.1; word-break: keep-all; padding: .2em .4em; border-radius: 20px; background: var(--bg); border: 4px solid var(--tc); min-width: min(90%, 600px); }
+  .word { font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(3rem, 13vw, 9rem); line-height: 1.1; word-break: keep-all; padding: .2em .5em; border-radius: 12px; background: var(--bg); border: 3px solid var(--tc); min-width: min(90%, 600px); }
   .word.hide { color: transparent; text-shadow: 0 0 28px rgba(128,128,128,.9); user-select: none; }
-  .word.hit { animation: pop .35s; }
-  @keyframes pop { 0% { transform: scale(.8); } 70% { transform: scale(1.05); } 100% { transform: scale(1); } }
-  .cat { font-weight: 900; color: var(--muted); }
-  .clock { font-family: var(--f-display); font-size: clamp(3rem, 9vw, 5.5rem); line-height: 1; font-variant-numeric: tabular-nums; }
-  .clock.low { color: var(--red); animation: pulse .5s infinite alternate; }
-  @keyframes pulse { to { transform: scale(1.08); } }
+  .word.hit { animation: pop .25s ease-out; }
+  @keyframes pop { from { transform: scale(.96); opacity: .6; } to { transform: none; opacity: 1; } }
+  .cat { font-weight: 800; color: var(--muted); font-size: .95rem; }
+  .big-ic { color: var(--tc); }
+  .big-ic .ico { width: 72px; height: 72px; stroke-width: 1.6; }
+  .clock { font-family: var(--f-num); font-weight: 700; font-size: clamp(3.4rem, 10vw, 6.5rem); line-height: 1; font-variant-numeric: tabular-nums; }
+  .clock.low { color: var(--red); }
   .act { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: min(100%, 640px); }
-  .act .btn { flex: 1 1 160px; min-height: 76px; font-size: 1.5rem; }
+  .act .btn { flex: 1 1 160px; min-height: 72px; font-size: 1.35rem; }
   .act .ok { background: var(--green); border-color: var(--green); color: #fff; }
   .board { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-  .board div { padding: 8px 16px; border-radius: 14px; background: var(--tc); color: #fff; font-weight: 900; font-size: 1.1rem; }
-  .board div b { font-family: var(--f-display); font-size: 1.6rem; margin-left: 6px; }
-  .board div.now { outline: 4px solid var(--ink); outline-offset: 2px; }
+  .board div { padding: 6px 14px; border-radius: 8px; background: var(--tc); color: #fff; font-weight: 800; font-size: 1.05rem; display: flex; align-items: baseline; }
+  .board div b { font-family: var(--f-num); font-weight: 700; font-size: 1.8rem; margin-left: 8px; line-height: 1; }
+  .board div.now { outline: 3px solid var(--ink); outline-offset: 2px; }
   .log { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 700px; }
-  .log span { padding: .2em .7em; border-radius: 999px; font-weight: 700; }
+  .log span { padding: .2em .7em; border-radius: 6px; font-weight: 700; }
   .log .o { background: color-mix(in srgb, var(--green) 20%, transparent); color: var(--green); }
   .log .x { background: var(--bg-3); color: var(--muted); text-decoration: line-through; }
 </style>
@@ -42,29 +45,29 @@
 <body>
 <main class="page">
   <section class="box setup" id="setup">
-    <h2 style="font-size:1.8rem">🎭 몸으로 말해요</h2>
-    <p class="hint" style="font-size:1rem">한 명이 제시어를 몸으로 표현하고, 같은 팀이 맞혀요. 말하면 안 돼요! 시간 안에 많이 맞힌 팀이 이겨요.</p>
+    <h2 style="font-size:1.6rem;display:flex;align-items:center;gap:.5rem"><i data-icon="drama"></i>몸으로 말해요</h2>
+    <p class="hint" style="font-size:1rem">한 명이 제시어를 말없이 몸으로 표현하고 같은 팀이 맞힙니다. 제한 시간 안에 더 많이 맞힌 팀이 이깁니다.</p>
     <div class="field">주제 고르기<div class="chips" id="cats"></div></div>
-    <label class="field">내가 만든 제시어 (쉼표나 줄바꿈으로 구분 · ‘우리 주제’로 들어가요)<textarea id="custom" class="search" style="min-height:90px;padding:.7em" placeholder="관장님, 띠 매기, 줄넘기 2단 뛰기"></textarea></label>
+    <label class="field">내가 만든 제시어 (쉼표나 줄바꿈으로 구분 · ‘우리 주제’에 들어갑니다)<textarea id="custom" class="search" style="min-height:90px;padding:.7em" placeholder="관장님, 띠 매기, 줄넘기 2단 뛰기"></textarea></label>
     <div class="grid2">
       <label class="field">팀 수<select id="nt"><option>2</option><option>3</option><option>4</option></select></label>
       <label class="field">한 차례 시간 (초)<input id="secs" type="number" min="15" max="300" value="60" inputmode="numeric"></label>
       <label class="field">팀마다 차례 수<input id="rounds" type="number" min="1" max="10" value="2" inputmode="numeric"></label>
       <label class="field">패스 횟수 (차례마다)<input id="passes" type="number" min="0" max="10" value="2" inputmode="numeric"></label>
     </div>
-    <label class="check"><input type="checkbox" id="hide"> 제시어 가리기 (화면을 누르고 있는 동안만 보여요 — 맞히는 친구들이 TV를 볼 때)</label>
-    <button class="btn primary big" id="start">게임 시작!</button>
+    <label class="check"><input type="checkbox" id="hide"> 제시어 가리기 — 누르고 있는 동안만 보입니다 (맞히는 쪽이 같은 화면을 볼 때)</label>
+    <button class="btn primary big" id="start"><i data-icon="play"></i>시작</button>
   </section>
 
   <section id="play" hidden>
-    <div class="toolbar" style="margin-bottom:12px"><button class="btn" id="back">⚙️ 설정으로</button><span class="grow"></span><button class="btn" id="fs">⛶ 전체 화면</button></div>
+    <div class="toolbar" style="margin-bottom:12px"><button class="btn" id="back"><i data-icon="settings"></i>설정</button><span class="grow"></span><button class="btn" id="fs"><i data-icon="maximize"></i>전체 화면</button></div>
     <div class="stage" id="stage"></div>
   </section>
 </main>
 <script>
 (function () {
-  const K = Kihap, $ = id => document.getElementById(id), esc = K.esc;
-  K.topbar('🎭 몸으로 말해요');
+  const K = Kihap, $ = id => document.getElementById(id), esc = K.esc, I = K.icon;
+  K.topbar('몸으로 말해요', '', 'drama');
   K.markLast('charades', '몸으로 말해요');
 
   const WORDS = {
@@ -115,29 +118,29 @@
   function render() {
     const t = G.teams[G.team], st = $('stage'); st.style.setProperty('--tc', t.color);
     if (G.phase === 'ready') {
-      st.innerHTML = `${board()}<div class="turn"><b>${t.name}</b> 차례! (${Math.floor(G.turn / G.teams.length) + 1} / ${cfg.rounds}번째)</div>
-        <p class="hint" style="font-size:1.1rem">표현할 친구 한 명이 나와요. 준비되면 시작!</p>
-        <button class="btn primary big" data-a="go">▶ ${cfg.secs}초 시작</button>`;
+      st.innerHTML = `${board()}<div class="turn"><b>${t.name}</b> 차례 · ${Math.floor(G.turn / G.teams.length) + 1} / ${cfg.rounds}</div>
+        <p class="hint" style="font-size:1.05rem">표현할 사람 한 명이 앞으로 나옵니다.</p>
+        <button class="btn primary big" data-a="go">${I('play')}${cfg.secs}초 시작</button>`;
     } else if (G.phase === 'play') {
       const [w, c] = word();
       st.innerHTML = `${board()}<div class="clock ${G.left <= 10 ? 'low' : ''}">${G.left}</div>
         <div class="cat">주제: ${esc(c)}</div>
         <div class="word ${cfg.hide ? 'hide' : ''}" id="word">${esc(w)}</div>
-        ${cfg.hide ? '<p class="hint">제시어를 누르고 있으면 보여요</p>' : ''}
-        <div class="act"><button class="btn ok" data-a="ok">⭕ 맞혔어요!</button><button class="btn" data-a="pass" ${G.passLeft ? '' : 'disabled'}>⏭ 패스 (${G.passLeft})</button></div>
+        ${cfg.hide ? '<p class="hint">제시어를 누르고 있으면 보입니다</p>' : ''}
+        <div class="act"><button class="btn ok" data-a="ok">${I('check')}정답</button><button class="btn" data-a="pass" ${G.passLeft ? '' : 'disabled'}>${I('chevron-right')}패스 ${G.passLeft}</button></div>
         <div class="log">${G.log.map(([w, o]) => `<span class="${o ? 'o' : 'x'}">${esc(w)}</span>`).join('')}</div>`;
       const wd = $('word');
       if (cfg.hide) { const sh = v => wd.classList.toggle('hide', !v); wd.onpointerdown = () => sh(1); wd.onpointerup = wd.onpointerleave = wd.onpointercancel = () => sh(0); }
     } else if (G.phase === 'after') {
       const n = G.log.filter(x => x[1]).length;
-      st.innerHTML = `${board()}<div class="turn">⏰ 시간 끝! <b>${t.name}</b> ${n}개 맞혔어요</div>
+      st.innerHTML = `${board()}<div class="turn">시간 끝 · <b>${t.name}</b> ${n}개 정답</div>
         <div class="log">${G.log.map(([w, o]) => `<span class="${o ? 'o' : 'x'}">${esc(w)}</span>`).join('') || '<span class="x">없음</span>'}</div>
-        <button class="btn primary big" data-a="next">${G.turn + 1 >= G.teams.length * cfg.rounds ? '🏆 결과 보기' : '다음 팀 →'}</button>`;
+        <button class="btn primary big" data-a="next">${G.turn + 1 >= G.teams.length * cfg.rounds ? I('trophy') + '결과 보기' : '다음 팀' + I('chevron-right')}</button>`;
     } else {
       const max = Math.max(...G.teams.map(t => t.score)), win = G.teams.filter(t => t.score === max);
       st.style.setProperty('--tc', win[0].color);
-      st.innerHTML = `<div style="font-size:5rem">🏆</div><div class="word">${win.length > 1 ? '무승부!' : win[0].name + ' 승리!'}</div>${board()}
-        <button class="btn primary big" data-a="again">다시 하기</button>`;
+      st.innerHTML = `<div class="big-ic">${I('trophy')}</div><div class="word">${win.length > 1 ? '무승부' : win[0].name + ' 승리'}</div>${board()}
+        <button class="btn big" data-a="again">${I('rotate-ccw')}다시 하기</button>`;
     }
   }
 
@@ -152,7 +155,7 @@
         if (G.left <= 0) { clearInterval(timer); G.phase = 'after'; K.sound.end(); render(); return; }
         const c = document.querySelector('.clock'); if (c) { c.textContent = G.left; c.classList.toggle('low', G.left <= 10); }
       }, 1000);
-    } else if (a === 'ok') { G.log.push([word()[0], 1]); G.teams[G.team].score++; G.idx++; K.sound.fanfare(); }
+    } else if (a === 'ok') { G.log.push([word()[0], 1]); G.teams[G.team].score++; G.idx++; K.sound.pop(); }
     else if (a === 'pass') { G.log.push([word()[0], 0]); G.passLeft--; G.idx++; K.sound.tick(); }
     else if (a === 'next') {
       G.turn++;

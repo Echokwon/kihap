@@ -1,7 +1,7 @@
 /* 기합 — 겨루기 스코어보드: 청 vs 홍 · 3라운드 · 2선승 */
 (function () {
   const K = Kihap, $ = id => document.getElementById(id), now = () => performance.now();
-  K.topbar('📊 스코어보드', `<button class="btn icon" id="fsBtn" aria-label="전체 화면">⛶</button>`);
+  K.topbar('스코어보드', `<button class="btn icon" id="fsBtn" aria-label="전체 화면">${K.icon('maximize')}</button>`, 'chart-column');
   K.markLast('scoreboard', '스코어보드');
 
   const NAME = { b: '청', r: '홍' };
@@ -30,13 +30,13 @@
     $('clock').classList.toggle('warn', S.phase === 'fight' && S.remain <= 10000);
     $('clock').classList.toggle('rest', S.phase === 'rest');
     $('hist').innerHTML = S.log.map(K.esc).join('<br>');
-    $('go').textContent = S.phase === 'done' ? '경기 끝' : running ? '⏸ 멈춤' : (S.phase === 'ready' ? '▶ 시작' : '▶ 계속');
+    $('go').innerHTML = S.phase === 'done' ? '경기 끝' : running ? K.icon('pause') + '멈춤' : K.icon('play') + (S.phase === 'ready' ? '시작' : '계속');
     $('go').disabled = S.phase === 'done';
     $('endRound').disabled = S.phase !== 'fight';
     $('undo').disabled = !history.length;
     const w = $('winner');
     w.hidden = !S.winner;
-    if (S.winner) w.innerHTML = `<span>${NAME[S.winner]} 승리 · ${S.wins.b} : ${S.wins.r}</span><b style="color:${S.winner === 'b' ? '#6ea0ff' : '#ff6b73'}">🏆 ${K.esc(S.names[S.winner])}</b><span>‘경기 새로 시작’을 누르면 다음 경기</span>`;
+    if (S.winner) w.innerHTML = `<span>${NAME[S.winner]} 승리 · ${S.wins.b} : ${S.wins.r}</span><b style="color:${S.winner === 'b' ? '#6ea0ff' : '#ff6b73'}">${K.icon('trophy')}${K.esc(S.names[S.winner])}</b><span>‘경기 새로 시작’을 누르면 다음 경기</span>`;
   }
   const bump = s => { const el = $('s' + s.toUpperCase()); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); };
 
@@ -51,7 +51,7 @@
     if (S.phase === 'done') return;
     const o = s === 'b' ? 'r' : 'b';
     snap(); S.gam[s]++; S.score[o]++; save(); render(); bump(o); K.sound.whistle();
-    K.toast(`${NAME[s]} 감점 → ${NAME[o]} +1`);
+    K.toast(`${NAME[s]} 감점 · ${NAME[o]} +1`);
   }
   document.querySelectorAll('.pads').forEach(p => {
     const s = p.dataset.side;
@@ -77,7 +77,7 @@
     if (S.remain <= 0) {
       running = false; clearInterval(iv);
       if (S.phase === 'fight') { K.sound.end(); endRound(); }
-      else if (S.phase === 'rest') { K.sound.whistle(); S.phase = 'ready'; S.remain = cfg.round * 1000; save(); K.toast(`${S.round} 라운드 준비!`); }
+      else if (S.phase === 'rest') { K.sound.whistle(); S.phase = 'ready'; S.remain = cfg.round * 1000; save(); K.toast(`${S.round}라운드 준비`); }
     }
     render();
   }
@@ -102,14 +102,14 @@
   function roundWin(s, how) {
     snap();
     S.wins[s]++;
-    S.log.push(`${S.round}R ${S.score.b}:${S.score.r} → ${NAME[s]} ${how}승`);
+    S.log.push(`${S.round}R ${S.score.b}:${S.score.r} · ${NAME[s]} ${how}승`);
     if (S.wins[s] >= 2 || S.round >= 3) {
       S.phase = 'done'; S.winner = S.wins.b > S.wins.r ? 'b' : 'r'; S.remain = 0;
       K.sound.fanfare();
     } else {
       S.round++; S.score = { b: 0, r: 0 }; S.gam = { b: 0, r: 0 };
       S.phase = 'rest'; S.remain = cfg.rest * 1000;
-      K.toast(`${NAME[s]} ${S.round - 1}라운드 승! 쉬는 시간`);
+      K.toast(`${NAME[s]} ${S.round - 1}라운드 승 · 쉬는 시간`);
       if (cfg.rest > 0) startClock(); else { S.phase = 'ready'; S.remain = cfg.round * 1000; }
     }
     save(); render();

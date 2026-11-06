@@ -9,60 +9,63 @@
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
 <link rel="stylesheet" href="../shared/base.css">
 <script src="../shared/core.js"></script>
+<script src="../shared/icons.js"></script>
 <style>
   :root { --chung: #1f5fd6; --hong: #d8323c; }
   .board {
     display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; min-height: min(78vh, 760px);
-    border-radius: 24px; overflow: hidden; box-shadow: var(--shadow); background: #0b1020; color: #fff;
+    border-radius: 14px; overflow: hidden; background: #0b1020; color: #fff;
   }
   .board-wrap:fullscreen .board { border-radius: 0; min-height: 100vh; }
   .side { display: grid; grid-template-rows: auto 1fr auto auto; gap: 10px; padding: clamp(12px, 2vw, 22px); text-align: center; position: relative; }
-  .side.b { background: linear-gradient(160deg, #2a6cf0, #163f96); }
-  .side.r { background: linear-gradient(200deg, #e8444d, #9c1a22); }
-  .side .tag { font-family: var(--f-display); font-size: clamp(1.2rem, 2.6vw, 2rem); opacity: .9; }
+  .side.b { background: #1f56c4; }
+  .side.r { background: #c9262f; }
+  .side .tag { font-family: var(--f-display); font-weight: 800; letter-spacing: .08em; font-size: clamp(1rem, 2.2vw, 1.6rem); opacity: .85; }
   .side input.name {
-    width: 100%; background: rgba(0, 0, 0, .18); border: 2px solid rgba(255, 255, 255, .25); color: #fff; border-radius: 12px;
-    font-family: var(--f-display); font-size: clamp(1.3rem, 3vw, 2.4rem); text-align: center; padding: .15em .4em; min-height: 52px;
+    width: 100%; background: rgba(0, 0, 0, .18); border: 1.5px solid rgba(255, 255, 255, .25); color: #fff; border-radius: 8px;
+    font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(1.3rem, 3vw, 2.4rem); text-align: center; padding: .15em .4em; min-height: 52px;
   }
   .side input.name:focus { outline: 3px solid #fff; }
-  .score { font-family: var(--f-display); font-size: clamp(7rem, 22vw, 20rem); line-height: .9; display: grid; place-items: center; font-variant-numeric: tabular-nums; text-shadow: 0 6px 0 rgba(0, 0, 0, .2); }
+  .score { font-family: var(--f-num); font-weight: 700; font-size: clamp(8rem, 25vw, 23rem); line-height: .85; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
   .board-wrap:fullscreen .board .score { font-size: min(30vw, 46vh); }
-  .score.bump { animation: bump .25s; }
-  @keyframes bump { 50% { transform: scale(1.12); } }
-  .meta { display: flex; justify-content: center; gap: 14px; align-items: center; font-weight: 900; flex-wrap: wrap; }
+  .score.bump { animation: bump .2s ease-out; }
+  @keyframes bump { from { opacity: .55; } }
+  .meta { display: flex; justify-content: center; gap: 14px; align-items: center; font-weight: 800; flex-wrap: wrap; }
   .wins { display: flex; gap: 6px; }
-  .wins i { width: 22px; height: 22px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, .7); }
+  .wins i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .7); }
   .wins i.on { background: #ffd23f; border-color: #ffd23f; }
-  .gam { padding: .15em .7em; border-radius: 999px; background: rgba(0, 0, 0, .25); }
+  .gam { padding: .15em .7em; border-radius: 6px; background: rgba(0, 0, 0, .25); }
   .pads { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .pads button {
-    min-height: 56px; border-radius: 14px; border: 2px solid rgba(255, 255, 255, .35); background: rgba(255, 255, 255, .14); color: #fff;
-    font-family: var(--f-display); font-size: 1.6rem; cursor: pointer;
+    min-height: 56px; border-radius: 8px; border: 1.5px solid rgba(255, 255, 255, .35); background: rgba(255, 255, 255, .12); color: #fff;
+    font-family: var(--f-num); font-weight: 700; font-size: 1.9rem; cursor: pointer;
   }
   .pads button:active { transform: scale(.95); background: rgba(255, 255, 255, .3); }
-  .pads button.minus, .pads button.gamb { font-family: var(--f-body); font-size: 1rem; font-weight: 900; }
+  .pads button.minus, .pads button.gamb { font-family: var(--f-body); font-size: 1rem; font-weight: 800; }
   .pads button.gamb { background: rgba(0, 0, 0, .3); }
   .board-wrap:fullscreen .board .pads { display: none; }
 
   .mid { background: #0b1020; display: grid; align-content: center; justify-items: center; gap: 10px; padding: 16px clamp(10px, 2vw, 24px); min-width: clamp(170px, 22vw, 320px); }
-  .round-lbl { font-family: var(--f-display); font-size: clamp(1.3rem, 3vw, 2.4rem); }
-  .phase { font-weight: 900; padding: .2em .9em; border-radius: 999px; background: #222c4a; font-size: .95rem; }
+  .round-lbl { font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(1.2rem, 2.8vw, 2.2rem); }
+  .phase { font-weight: 800; padding: .2em .9em; border-radius: 6px; background: #222c4a; font-size: .95rem; }
   .phase[data-p="fight"] { background: #18995a; }
   .phase[data-p="rest"] { background: #e8a500; color: #1b1300; }
   .phase[data-p="done"] { background: #ffd23f; color: #1b1300; }
-  .clock { font-family: var(--f-display); font-size: clamp(3.2rem, 9vw, 7.5rem); line-height: 1; font-variant-numeric: tabular-nums; }
+  .clock { font-family: var(--f-num); font-weight: 700; font-size: clamp(3.6rem, 10vw, 8.5rem); line-height: 1; font-variant-numeric: tabular-nums; }
   .board-wrap:fullscreen .board .clock { font-size: min(14vw, 20vh); }
   .clock.warn { color: #ffd23f; }
   .clock.rest { color: #ffd23f; }
   .hist { font-size: .85rem; color: #a3abc2; text-align: center; line-height: 1.6; }
   .winner {
     position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 10px; text-align: center;
-    background: rgba(5, 8, 20, .82); color: #fff; z-index: 5; font-family: var(--f-display); animation: fade .4s;
+    background: rgba(5, 8, 20, .85); color: #fff; z-index: 5; font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; animation: fade .3s;
   }
-  .winner b { font-size: clamp(3rem, 10vw, 8rem); line-height: 1; }
+  .winner b { font-size: clamp(3rem, 10vw, 8rem); line-height: 1; display: inline-flex; align-items: center; gap: .2em; }
+  .winner b .ico { width: .8em; height: .8em; color: #ffd23f; }
   .winner span { font-size: clamp(1.2rem, 3vw, 2rem); opacity: .85; }
   @keyframes fade { from { opacity: 0; } }
   .board-wrap { position: relative; }
@@ -109,10 +112,10 @@
   </div>
 
   <div class="controls">
-    <button class="btn primary big" id="go">▶ 시작</button>
+    <button class="btn primary big" id="go"><i data-icon="play"></i>시작</button>
     <button class="btn big" id="endRound">라운드 끝내기</button>
-    <button class="btn big" id="undo">↶ 되돌리기</button>
-    <button class="btn" id="settings">⚙️ 시간 설정</button>
+    <button class="btn big" id="undo"><i data-icon="undo-2"></i>되돌리기</button>
+    <button class="btn" id="settings"><i data-icon="settings"></i>시간 설정</button>
     <button class="btn danger" id="reset">경기 새로 시작</button>
   </div>
 

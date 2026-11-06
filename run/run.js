@@ -1,12 +1,12 @@
 /* 기합 — 모션 달리기
- * 카메라 앞 제자리 달리기 → 무릎이 번갈아 올라가면 한 걸음, 엉덩이가 훅 올라가면 점프.
- * 카메라가 없으면 ← → 번갈아 누르기 / 화면 버튼. */
+ * 카메라 앞 제자리 달리기: 무릎이 번갈아 올라가면 한 걸음, 엉덩이가 훅 올라가면 점프.
+ * 카메라가 없으면 왼쪽·오른쪽 방향키를 번갈아 누르거나 화면 버튼. */
 (function () {
   const K = Kihap, $ = id => document.getElementById(id);
   const MP = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
   const MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
 
-  K.topbar('🏃 모션 달리기', `<button class="btn icon" id="fsBtn" aria-label="전체 화면">⛶</button>`);
+  K.topbar('모션 달리기', `<button class="btn icon" id="fsBtn" aria-label="전체 화면">${K.icon('maximize')}</button>`, 'footprints');
   $('fsBtn').onclick = () => K.fullscreen($('arena'));
   K.markLast('run', '모션 달리기');
 
@@ -93,10 +93,10 @@
     let res; try { res = landmarker.detectForVideo(video, performance.now()); } catch (e) { return; }
     const lm = res.landmarks && res.landmarks[0];
     drawSkeleton(lm);
-    if (!lm) { camTip('사람이 안 보여요'); return; }
+    if (!lm) { camTip('사람이 보이지 않습니다'); return; }
     const vis = i => (lm[i].visibility == null ? 1 : lm[i].visibility);
-    if ([23, 24, 25, 26].some(i => vis(i) < .5)) { camTip('몸 전체가 보이게 2~3m 뒤로!'); return; }
-    camTip('좋아요! 제자리 달리기 🏃');
+    if ([23, 24, 25, 26].some(i => vis(i) < .5)) { camTip('몸 전체가 보이도록 2~3m 뒤로'); return; }
+    camTip('인식됨 · 제자리 달리기');
     const hipY = (lm[23].y + lm[24].y) / 2, shY = (lm[11].y + lm[12].y) / 2;
     const torso = Math.max(.05, hipY - shY);
     P.torso = P.torso * .9 + torso * .1;
@@ -137,19 +137,19 @@
   function begin() {
     reset(); G.phase = 'count';
     show('menu', false); show('result', false); show('hud', true);
-    hint(G.input === 'cam' ? '몸 전체가 보이게 2~3m 뒤로 서요' : '← → 번갈아 누르면 달려요 · 스페이스 = 점프');
+    hint(G.input === 'cam' ? '몸 전체가 보이도록 2~3m 뒤에 서세요' : '왼쪽·오른쪽 방향키를 번갈아 누르면 달립니다 · 스페이스 = 점프');
     K._wantAwake = true; K.keepAwake(true);
     let n = 3; bigText(n); K.sound.beep();
     clearInterval(countT);
     countT = setInterval(() => {
       n--;
       if (n > 0) { bigText(n); K.sound.beep(); }
-      else { clearInterval(countT); bigText('출발!'); K.sound.go(); G.phase = 'play'; setTimeout(() => { if (G.phase === 'play') bigText(''); }, 700); setTimeout(() => { if (G.phase === 'play') hint(''); }, 4000); }
+      else { clearInterval(countT); bigText('GO'); K.sound.go(); G.phase = 'play'; setTimeout(() => { if (G.phase === 'play') bigText(''); }, 700); setTimeout(() => { if (G.phase === 'play') hint(''); }, 4000); }
     }, 1000);
     updateHud();
   }
   function finish() {
-    G.phase = 'end'; bigText('끝!'); K.sound.end(); hint('');
+    G.phase = 'end'; bigText('끝'); K.sound.end(); hint('');
     setTimeout(() => { bigText(''); openResult(); }, 1100);
   }
 
@@ -160,12 +160,12 @@
   function renderBoard(highlight) {
     const b = board();
     $('rBoard').innerHTML = b.length ? b.map((r, i) => `<li class="${i === highlight ? 'me' : ''}"><span>${i + 1}</span><b>${K.esc(r.name)}</b><span>${r.m}m</span></li>`).join('')
-      : '<li><span></span><b class="muted">아직 기록이 없어요</b><span></span></li>';
+      : '<li><span></span><b class="muted">아직 기록이 없습니다</b><span></span></li>';
   }
   function openResult() {
     const m = Math.round(G.dist), b = board();
     const rank = b.filter(r => r.m >= m).length;          // 들어갈 자리
-    $('rTitle').textContent = rank === 0 && m > 0 ? '🥇 신기록!' : '완주! 🎉';
+    $('rTitle').innerHTML = rank === 0 && m > 0 ? K.icon('medal') + '신기록' : '완주';
     $('rDist').textContent = m + 'm';
     $('rSub').textContent = `${G.secs}초 · 허들 ${G.cleared}개 넘음 · ${G.hits}번 걸림 · 최고 ${Math.round(G.best * 3.6)}km/h`;
     savedIdx = -1;
@@ -191,7 +191,7 @@
   $('again').onclick = begin;
   $('toMenu').onclick = () => { G.phase = 'menu'; show('result', false); show('hud', false); show('menu', true); hint(''); };
   $('showBoard').onclick = () => {
-    show('menu', false); $('rTitle').textContent = `🏆 ${G.secs}초 순위`; $('rDist').textContent = ''; $('rSub').textContent = '';
+    show('menu', false); $('rTitle').innerHTML = `${K.icon('trophy')}${G.secs}초 순위`; $('rDist').textContent = ''; $('rSub').textContent = '';
     $('nameRow').hidden = true; renderBoard(-1); show('result', true);
   };
 
@@ -201,12 +201,12 @@
   syncModes();
   $('startKey').onclick = () => { G.input = 'key'; stopCam(); $('pads').hidden = false; begin(); };
   $('startCam').onclick = async () => {
-    const btn = $('startCam'); btn.disabled = true; $('menuTip').textContent = '인식 모델을 받는 중… (처음 한 번만, 잠깐 기다려 주세요)';
+    const btn = $('startCam'); btn.disabled = true; $('menuTip').textContent = '인식 모델을 내려받는 중입니다 (처음 한 번만)';
     try {
       await loadPose(); await startCam();
       G.input = 'cam'; $('pads').hidden = true; begin();
     } catch (e) {
-      $('menuTip').innerHTML = `😢 카메라를 쓸 수 없어요 (${K.esc(e.message || e.name || '오류')}).<br>‘카메라 없이 하기’로 해 보세요.`;
+      $('menuTip').innerHTML = `카메라를 쓸 수 없습니다 (${K.esc(e.message || e.name || '오류')}).<br>‘카메라 없이 하기’를 눌러 주세요.`;
     } finally { btn.disabled = false; }
   };
 
@@ -235,10 +235,10 @@
       if (h.hit || h.ok) return;
       if (Math.abs(h.x - G.dist) < HURDLE_HALF && G.y < HURDLE_HIT) {
         h.hit = true; G.hits++; G.v *= .3; G.stun = .5; G.shake = .35; K.sound.beep();
-        floatText('앗! 걸렸다', playerX() - 30, groundY() - H * .35);
+        floatText('걸림', playerX() - 30, groundY() - H * .35);
       } else if (G.dist > h.x + HURDLE_HALF) {
         h.ok = true; G.cleared++; K.sound.tick();
-        floatText('점프 성공!', playerX() - 30, groundY() - H * .4);
+        floatText('통과', playerX() - 30, groundY() - H * .4);
       }
     });
     G.hurdles = G.hurdles.filter(h => h.x > G.dist - 20);
@@ -286,7 +286,7 @@
     cx.strokeStyle = 'rgba(255,255,255,.7)'; cx.lineWidth = 3;
     [.35, .7].forEach(f => { cx.beginPath(); cx.moveTo(0, gY + (H - gY) * f); cx.lineTo(W, gY + (H - gY) * f); cx.stroke(); });
     // 10m 표시
-    cx.fillStyle = '#fff'; cx.font = `700 ${Math.round(H * .035)}px "Noto Sans KR", sans-serif`; cx.textAlign = 'center';
+    cx.fillStyle = '#fff'; cx.font = `700 ${Math.round(H * .035)}px "Barlow Condensed", "Pretendard Variable", sans-serif`; cx.textAlign = 'center';
     const first = Math.floor((G.dist - playerX() / m) / 10) * 10;
     for (let d = first; d < G.dist + (W - playerX()) / m + 10; d += 10) {
       if (d <= 0) continue;
@@ -298,13 +298,13 @@
     G.hurdles.forEach(h => {
       const hx = playerX() + (h.x - G.dist) * m;
       hurdle(hx, gY, m, h.hit);
-      // 다가오는 허들 위에 "점프!" 신호
+      // 다가오는 허들 위에 "점프" 신호
       const ahead = h.x - G.dist;
       if (G.phase === 'play' && !h.hit && !h.ok && ahead > 0 && ahead < Math.max(6, G.v * .9)) {
-        cx.font = `900 ${Math.round(m * .38)}px "Do Hyeon", sans-serif`; cx.textAlign = 'center';
+        cx.font = `800 ${Math.round(m * .34)}px "Pretendard Variable", sans-serif`; cx.textAlign = 'center';
         cx.lineWidth = 5; cx.strokeStyle = '#16213a'; cx.fillStyle = ahead < Math.max(3, G.v * .45) ? '#ffd25a' : '#ffffff';
         const by = gY - HURDLE_H * m - m * .35 - Math.abs(Math.sin(G.run * 3)) * m * .12;
-        cx.strokeText('점프!', hx, by); cx.fillText('점프!', hx, by);
+        cx.strokeText('점프', hx, by); cx.fillText('점프', hx, by);
       }
     });
     // 그림자 + 캐릭터

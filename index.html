@@ -14,126 +14,120 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
 <link rel="stylesheet" href="shared/base.css">
 <script src="shared/core.js"></script>
+<script src="shared/icons.js"></script>
 <style>
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px 64px; }
-  .hero { padding: 2.2rem 0 1.6rem; display: grid; gap: .7rem; }
-  .hero h1 { font-size: clamp(2.1rem, 6vw, 3.4rem); }
-  .hero h1 em { font-style: normal; color: var(--red); }
-  .hero p { margin: 0; color: var(--muted); font-size: 1.05rem; max-width: 38rem; }
-  .resume { justify-self: start; }
-  .resume[hidden] { display: none; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px 64px; }
 
-  .sec { margin-top: 2.2rem; }
-  .sec-head { display: flex; align-items: baseline; gap: .7rem; margin-bottom: .9rem; flex-wrap: wrap; }
-  .sec-head h2 { font-size: 1.7rem; }
-  .sec-head .tag { font-size: .8rem; font-weight: 700; padding: .15em .7em; border-radius: 999px; background: var(--bg-3); color: var(--muted); }
-  .sec-head .tag.live { background: var(--red); color: #fff; }
+  .hero { padding: 2.6rem 0 1.4rem; display: grid; gap: .9rem; border-bottom: 1px solid var(--line); }
+  .hero .eyebrow { font-family: var(--f-num); font-weight: 700; letter-spacing: .14em; font-size: .95rem; color: var(--red); }
+  .hero h1 { font-size: clamp(2rem, 5.4vw, 3.3rem); letter-spacing: -.035em; line-height: 1.12; }
+  .hero p { margin: 0; color: var(--muted); font-size: 1.02rem; max-width: 36rem; }
+  .hero-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .resume { gap: .5em; }
 
-  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .sec { margin-top: 2.4rem; }
+  .sec-head { display: flex; align-items: baseline; gap: .8rem; margin-bottom: .9rem; }
+  .sec-head .no { font-family: var(--f-num); font-weight: 700; font-size: 1.05rem; color: var(--sc); letter-spacing: .06em; }
+  .sec-head h2 { font-size: 1.35rem; }
+  .sec-head .cnt { margin-left: auto; font-size: .85rem; color: var(--muted); font-weight: 600; }
+
+  .grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
   .tile {
-    position: relative; display: grid; gap: .5rem; align-content: start;
-    padding: 1.1rem 1rem 1rem; min-height: 132px; text-decoration: none;
-    background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
-    transition: transform .12s, border-color .12s;
+    display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px;
+    padding: 14px 14px 14px 14px; min-height: 76px; text-decoration: none;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+    transition: border-color .12s, background .12s;
   }
-  a.tile:hover { transform: translateY(-3px); border-color: var(--red); }
-  a.tile:active { transform: scale(.98); }
-  .tile .ic { font-size: 2rem; line-height: 1; }
-  .tile b { font-size: 1.1rem; }
-  .tile span { font-size: .85rem; color: var(--muted); line-height: 1.45; }
-  .tile.soon { opacity: .62; }
-  .tile.soon::after {
-    content: '준비 중'; position: absolute; top: .7rem; right: .7rem;
-    font-size: .7rem; font-weight: 700; padding: .1em .6em; border-radius: 999px; background: var(--bg-3); color: var(--muted);
-  }
-  .tile .stripe { position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 0 4px 4px 0; }
+  .tile:hover { border-color: var(--sc); }
+  .tile:active { background: var(--bg-3); }
+  .tile .ic { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--sc) 13%, transparent); color: var(--sc); }
+  .tile .ic .ico { width: 23px; height: 23px; }
+  .tile b { display: block; font-size: 1.05rem; font-weight: 700; letter-spacing: -.02em; }
+  .tile small { display: block; font-size: .84rem; color: var(--muted); line-height: 1.4; margin-top: 1px; }
+  .tile .go { color: var(--muted); opacity: .6; }
 
+  .brand { font-family: var(--f-display); font-weight: 800; letter-spacing: -.03em; font-size: 1.35rem; }
   footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); font-size: .85rem; color: var(--muted); display: flex; gap: 1rem; flex-wrap: wrap; justify-content: space-between; }
-  #installBtn[hidden] { display: none; }
 </style>
 </head>
 <body>
 <header class="topbar">
   <a class="brand grow" href="./" aria-label="기합 홈"><span id="logo"></span>기합</a>
-  <button class="btn" id="installBtn" hidden>앱으로 설치</button>
-  <button class="btn icon" id="muteBtn" aria-label="소리 끄기/켜기">🔊</button>
-  <button class="btn icon" id="themeBtn" aria-label="밝게/어둡게">🌙</button>
+  <button class="btn" id="installBtn" hidden><i data-icon="download"></i>앱으로 설치</button>
+  <button class="btn icon" id="muteBtn" aria-label="소리 끄기/켜기"></button>
+  <button class="btn icon" id="themeBtn" aria-label="밝게/어둡게"></button>
 </header>
 
 <main class="wrap">
   <section class="hero">
-    <h1>수업은 <em>기합</em>으로 시작해요</h1>
-    <p>타이머·게임·출석·대회 도구를 버튼 하나로 꺼내 쓰세요. TV나 태블릿에 띄워 두면 수업이 훨씬 편해져요. 인터넷이 끊겨도 동작해요.</p>
-    <a class="btn primary resume" id="resume" hidden href="#">이어서 쓰기 →</a>
+    <span class="eyebrow">KIHAP · DOJANG TOOLKIT</span>
+    <h1>도장 수업에 필요한 도구,<br>한곳에 모았습니다.</h1>
+    <p>타이머와 게임, 출석과 대회 채점까지. TV나 태블릿에 띄워 두고 쓰세요. 한 번 열어 두면 인터넷이 끊겨도 동작합니다.</p>
+    <div class="hero-row"><a class="btn primary resume" id="resume" hidden href="#"></a></div>
   </section>
 
-  <section class="sec" aria-labelledby="h-tools">
-    <div class="sec-head"><h2 id="h-tools">수업 도구</h2><span class="tag live">바로 사용</span></div>
-    <div class="grid" id="tools"></div>
-  </section>
-
-  <section class="sec" aria-labelledby="h-ops">
-    <div class="sec-head"><h2 id="h-ops">도장 운영</h2><span class="tag live">바로 사용</span></div>
-    <div class="grid" id="ops"></div>
-  </section>
-
-  <section class="sec" aria-labelledby="h-games">
-    <div class="sec-head"><h2 id="h-games">운동 게임</h2><span class="tag live">바로 사용</span></div>
-    <div class="grid" id="games"></div>
-  </section>
-
-  <section class="sec" aria-labelledby="h-comp">
-    <div class="sec-head"><h2 id="h-comp">대회</h2><span class="tag live">바로 사용</span></div>
-    <div class="grid" id="comp"></div>
-  </section>
+  <div id="sections"></div>
 
   <footer>
     <span>기합 · 도장 수업 도구</span>
-    <span>데이터는 이 기기에만 저장돼요</span>
+    <span>기록은 이 기기에만 저장됩니다</span>
   </footer>
 </main>
 
 <script>
 (function () {
-  const K = Kihap, $ = id => document.getElementById(id);
+  const K = Kihap, $ = id => document.getElementById(id), I = K.icon;
   $('logo').innerHTML = K.logo;
 
-  const TOOLS = [
-    ['timer', '⏲️', '타이머', '정해진 시간 카운트다운', '#d8323c'],
-    ['interval', '🔁', '인터벌', '운동·휴식 라운드 반복', '#e8a500'],
-    ['stopwatch', '⏱️', '스톱워치', '기록 재기 · 랩 타임', '#2457c5'],
-    ['dice', '🎲', '주사위', '숫자 · 운동 주사위', '#18995a'],
-    ['draw', '🎯', '랜덤 뽑기', '이름 뽑기 · 팀 나누기', '#8a3ffc'],
-    ['bracket', '🏆', '토너먼트', '대진표 만들고 우승자까지', '#e8a500'],
-    ['signal', '🚥', '반응 신호', '색·방향 신호로 순발력', '#18995a'],
-    ['bomb', '💣', '폭탄 돌리기', '언제 터질지 모르는 폭탄', '#d8323c']
+  // [주소, 아이콘, 이름, 설명, 마지막 사용 id]
+  const SECTIONS = [
+    { title: '수업 도구', color: '#d8323c', items: [
+      ['tools/#timer', 'timer', '타이머', '정해 둔 시간 카운트다운', 'timer'],
+      ['tools/#interval', 'repeat', '인터벌', '운동과 휴식을 라운드로 반복', 'interval'],
+      ['tools/#stopwatch', 'alarm-clock', '스톱워치', '기록 측정과 구간 기록', 'stopwatch'],
+      ['tools/#dice', 'dices', '주사위', '숫자 주사위와 운동 주사위', 'dice'],
+      ['tools/#draw', 'shuffle', '랜덤 뽑기', '이름 뽑기와 팀 나누기', 'draw'],
+      ['tools/#bracket', 'trophy', '토너먼트', '대진표를 만들고 우승자까지', 'bracket'],
+      ['tools/#signal', 'traffic-cone', '반응 신호', '색과 방향 신호로 순발력 훈련', 'signal'],
+      ['tools/#bomb', 'bomb', '폭탄 돌리기', '언제 터질지 모르는 시간 게임', 'bomb'] ] },
+    { title: '도장 운영', color: '#2457c5', items: [
+      ['attend/', 'clipboard-check', '출석 체크', '번호 · 명단 · QR · 얼굴 인식', 'attend'],
+      ['manage/', 'users', '원생 관리', '명단 · 회비 · 띠 · 출석 현황', 'manage'],
+      ['planner/', 'calendar-days', '월간 계획표', '수업 계획 작성과 이미지 저장', 'planner'],
+      ['bus/', 'bus', '차량 운행표', '정류장 순서와 탑승 확인', 'bus'] ] },
+    { title: '운동 게임', color: '#18995a', items: [
+      ['tower/', 'castle', '탑 오르기', '층마다 운동 미션, 팀 대결', 'tower'],
+      ['dodgeball/', 'volleyball', '스킬 피구', '스킬 카드를 더한 피구', 'dodgeball'],
+      ['run/', 'footprints', '모션 달리기', '카메라가 제자리 달리기를 인식', 'run'],
+      ['charades/', 'drama', '몸으로 말해요', '팀 대항 제시어 맞히기', 'charades'],
+      ['ladder/', 'ladder', '운동 사다리', '주사위 보드게임과 운동 미션', 'ladder'] ] },
+    { title: '대회', color: '#8a3ffc', items: [
+      ['scoreboard/', 'chart-column', '스코어보드', '겨루기 점수판과 라운드 타이머', 'scoreboard'],
+      ['poomsae/', 'belt', '공인 품새 채점', '정확성 · 표현성, 심판 1~5명', 'poomsae'],
+      ['poomsae/?mode=free', 'music', '자유 품새 채점', '기술 · 표현 항목 채점', 'poomsae-free'] ] }
   ];
-  const OPS = [['attend', '📋', '출석 체크', '번호·명단·QR·얼굴로 출석', '#18995a'], ['manage', '🧒', '원생 관리', '명단 · 회비 · 띠 · 출석 현황', '#2457c5'], ['planner', '🗓️', '월간 계획표', '수업 계획 · 이미지 저장', '#e8a500'], ['bus', '🚐', '차량 운행표', '정류장 · 탑승 체크', '#d8323c']];
-  const GAMES = [['tower/', '🗼', '탑 오르기', '미션 깨며 한 층씩 · 팀 대결', '#8a3ffc'], ['dodgeball/', '🔴', '스킬 피구', '스킬 카드로 뒤집는 피구', '#d8323c'], ['run/', '🏃', '모션 달리기', '카메라가 몸동작을 인식', '#18995a'], ['charades/', '🎭', '몸으로 말해요', '팀 대항 제시어 맞히기', '#e8a500'], ['ladder/', '🐍', '운동 사다리', '주사위 · 사다리 · 운동 미션', '#2457c5']];
-  const COMP = [['scoreboard/', '📊', '스코어보드', '겨루기 점수판 · 라운드 타이머', '#2457c5'], ['poomsae/', '🥋', '품새 채점', '공인 품새 · 심판 1~5명', '#d8323c'], ['poomsae/?mode=free', '🎵', '자유 품새', '기술 · 표현 채점', '#8a3ffc']];
 
-  const tile = (href, ic, name, desc, color) =>
-    `<a class="tile" href="${href}"><i class="stripe" style="background:${color}"></i><span class="ic" aria-hidden="true">${ic}</span><b>${name}</b><span>${desc}</span></a>`;
-  const soon = ([ic, name, desc]) =>
-    `<div class="tile soon" aria-disabled="true"><span class="ic" aria-hidden="true">${ic}</span><b>${name}</b><span>${desc}</span></div>`;
-
-  $('tools').innerHTML = TOOLS.map(([id, ic, n, d, c]) => tile('tools/#' + id, ic, n, d, c)).join('');
-  $('ops').innerHTML = OPS.map(([id, ic, n, d, c]) => tile(id + '/', ic, n, d, c)).join('');
-  $('games').innerHTML = GAMES.map(([h, ic, n, d, c]) => tile(h, ic, n, d, c)).join('');
-  $('comp').innerHTML = COMP.map(([h, ic, n, d, c]) => tile(h, ic, n, d, c)).join('');
+  $('sections').innerHTML = SECTIONS.map((s, i) => `
+    <section class="sec" style="--sc:${s.color}" aria-labelledby="h${i}">
+      <div class="sec-head"><span class="no">0${i + 1}</span><h2 id="h${i}">${s.title}</h2><span class="cnt">${s.items.length}개</span></div>
+      <div class="grid">${s.items.map(([href, ic, name, desc]) => `
+        <a class="tile" href="${href}"><span class="ic">${I(ic)}</span><span><b>${name}</b><small>${desc}</small></span><span class="go">${I('chevron-right')}</span></a>`).join('')}
+      </div>
+    </section>`).join('');
 
   // 이어서 쓰기
   const last = K.get('last', null);
-  const t = last && TOOLS.find(x => x[0] === last.id), o = last && OPS.find(x => x[0] === last.id);
-  const g = last && GAMES.concat(COMP).find(x => x[0].replace(/\/.*$/, '') === last.id);
-  if (t || o || g) { const r = $('resume'); r.hidden = false; r.href = t ? 'tools/#' + t[0] : o ? o[0] + '/' : g[0]; r.textContent = `이어서: ${t ? t[2] : o ? o[2] : g[2]} →`; }
+  const hit = last && SECTIONS.flatMap(s => s.items).find(x => x[4] === last.id);
+  if (hit) { const r = $('resume'); r.hidden = false; r.href = hit[0]; r.innerHTML = `${I(hit[1])}이어서: ${hit[2]}`; }
 
   // 소리 · 테마
-  const syncBtns = () => { $('muteBtn').textContent = K.muted() ? '🔇' : '🔊'; $('themeBtn').textContent = K.isDark() ? '☀️' : '🌙'; };
-  $('muteBtn').onclick = () => { K.setMuted(!K.muted()); syncBtns(); K.toast(K.muted() ? '소리 꺼짐' : '소리 켜짐'); };
+  const syncBtns = () => { $('muteBtn').innerHTML = I(K.muted() ? 'volume-x' : 'volume-2'); $('themeBtn').innerHTML = I(K.isDark() ? 'sun' : 'moon'); };
+  $('muteBtn').onclick = () => { K.setMuted(!K.muted()); syncBtns(); K.toast(K.muted() ? '소리를 껐습니다' : '소리를 켰습니다'); if (!K.muted()) K.sound.pop(); };
   $('themeBtn').onclick = () => { K.toggleTheme(); syncBtns(); };
   syncBtns();
 

@@ -9,25 +9,27 @@
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
 <link rel="stylesheet" href="../shared/base.css">
 <link rel="stylesheet" href="tools.css">
 <script src="../shared/core.js"></script>
+<script src="../shared/icons.js"></script>
 </head>
 <body>
 <header class="topbar">
-  <a class="btn icon" href="../" aria-label="홈으로">←</a>
+  <a class="btn icon" href="../" aria-label="홈으로"><i data-icon="arrow-left"></i></a>
   <h1 class="grow tb-title" id="tbTitle">수업 도구</h1>
-  <button class="btn icon" id="muteBtn" aria-label="소리 끄기/켜기">🔊</button>
-  <button class="btn icon" id="themeBtn" aria-label="밝게/어둡게">🌙</button>
-  <button class="btn icon" id="fsBtn" aria-label="전체 화면">⛶</button>
+  <button class="btn icon" id="muteBtn" aria-label="소리 끄기/켜기"></button>
+  <button class="btn icon" id="themeBtn" aria-label="밝게/어둡게"></button>
+  <button class="btn icon" id="fsBtn" aria-label="전체 화면"><i data-icon="maximize"></i></button>
 </header>
 
 <nav class="tabs" id="tabs" aria-label="도구 고르기"></nav>
 
 <main class="tools-main">
 
-  <!-- ⏲️ 타이머 -->
+  <!-- 타이머 -->
   <section class="panel" id="p-timer" hidden>
     <div class="stage" id="timerStage">
       <div class="ring-wrap">
@@ -49,11 +51,11 @@
         <button class="btn primary big" id="timerGo">시작</button>
         <button class="btn big" id="timerReset">처음으로</button>
       </div>
-      <p class="hint">스페이스바: 시작/멈춤 · 마지막 3초는 삐 소리로 알려 줘요</p>
+      <p class="hint">스페이스바로 시작·멈춤. 마지막 3초는 소리로 알려 줍니다.</p>
     </div>
   </section>
 
-  <!-- 🔁 인터벌 -->
+  <!-- 인터벌 -->
   <section class="panel" id="p-interval" hidden>
     <div class="stage phase" id="ivStage" data-phase="idle">
       <div class="phase-label" id="ivPhase">준비</div>
@@ -69,7 +71,7 @@
         <label class="field mini">휴식(초)<input type="number" id="ivRest" min="0" max="3600" value="10" inputmode="numeric"></label>
         <label class="field mini">라운드<input type="number" id="ivRounds" min="1" max="99" value="8" inputmode="numeric"></label>
       </div>
-      <label class="check"><input type="checkbox" id="ivVoice" checked> 음성으로 "운동", "휴식" 알려 주기</label>
+      <label class="check"><input type="checkbox" id="ivVoice" checked> 음성 안내 ("운동", "휴식")</label>
       <div class="row">
         <button class="btn primary big" id="ivGo">시작</button>
         <button class="btn big" id="ivReset">처음으로</button>
@@ -77,7 +79,7 @@
     </div>
   </section>
 
-  <!-- ⏱️ 스톱워치 -->
+  <!-- 스톱워치 -->
   <section class="panel" id="p-stopwatch" hidden>
     <div class="stage">
       <div class="big-num sw" id="swText">0:00<small>.00</small></div>
@@ -92,7 +94,7 @@
     </div>
   </section>
 
-  <!-- 🎲 주사위 -->
+  <!-- 주사위 -->
   <section class="panel" id="p-dice" hidden>
     <div class="stage">
       <div class="dice-row" id="diceRow"></div>
@@ -117,10 +119,10 @@
     </div>
   </section>
 
-  <!-- 🎯 랜덤 뽑기 -->
+  <!-- 랜덤 뽑기 -->
   <section class="panel" id="p-draw" hidden>
     <div class="stage">
-      <div class="draw-show" id="drawShow" aria-live="polite">누가 뽑힐까요?</div>
+      <div class="draw-show" id="drawShow" aria-live="polite">뽑기 준비</div>
       <div class="teams" id="drawTeams"></div>
     </div>
     <div class="ctrl">
@@ -143,7 +145,7 @@
     </div>
   </section>
 
-  <!-- 🏆 토너먼트 -->
+  <!-- 토너먼트 -->
   <section class="panel" id="p-bracket" hidden>
     <div class="stage bracket-stage">
       <div class="champ" id="champ" hidden></div>
@@ -157,11 +159,11 @@
         <label class="check"><input type="checkbox" id="brShuffle" checked> 순서 섞기</label>
         <button class="btn primary big" id="brMake">대진표 만들기</button>
       </div>
-      <p class="hint">이긴 사람 이름을 누르면 다음 판으로 올라가요. 잘못 눌렀으면 다시 누르면 돼요.</p>
+      <p class="hint">이긴 사람 이름을 누르면 다음 판으로 올라갑니다. 다시 누르면 취소됩니다.</p>
     </div>
   </section>
 
-  <!-- 🚥 반응 신호 -->
+  <!-- 반응 신호 -->
   <section class="panel" id="p-signal" hidden>
     <div class="stage signal" id="sigStage">
       <div class="sig-big" id="sigBig">준비</div>
@@ -181,18 +183,25 @@
         <label class="check"><input type="checkbox" id="sigVoice"> 음성으로 읽기</label>
       </div>
       <div class="row"><button class="btn primary big" id="sigGo">시작</button></div>
-      <p class="hint">출발 신호: 준비… 하고 기다렸다가 랜덤한 순간에 "출발!" — 누가 먼저 반응하는지 겨뤄 보세요.</p>
+      <p class="hint">출발 신호 모드는 "준비" 뒤 임의의 순간에 호루라기와 함께 출발 신호를 냅니다.</p>
     </div>
   </section>
 
-  <!-- 💣 폭탄 돌리기 -->
+  <!-- 폭탄 돌리기 -->
   <section class="panel" id="p-bomb" hidden>
     <div class="stage bomb-stage" id="bombStage" data-st="idle">
       <div class="bomb" id="bomb" aria-hidden="true">
         <div class="fuse"><i id="spark"></i></div>
-        <div class="bomb-body">💣</div>
+        <div class="bomb-body"><svg class="bomb-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M138 52 C150 34 166 30 178 38" fill="none" stroke="#8a7a62" stroke-width="7" stroke-linecap="round"/>
+          <rect x="112" y="46" width="34" height="26" rx="5" transform="rotate(38 129 59)" fill="#3a4258"/>
+          <circle cx="96" cy="118" r="66" fill="#1c2233" stroke="#6b7594" stroke-width="3"/>
+          <circle cx="96" cy="118" r="66" fill="url(#bshade)"/>
+          <ellipse cx="70" cy="90" rx="17" ry="11" transform="rotate(-35 70 90)" fill="#ffffff" opacity=".28"/>
+          <defs><radialGradient id="bshade" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#4a5576" stop-opacity=".9"/><stop offset="1" stop-color="#0b0f1a" stop-opacity="0"/></radialGradient></defs>
+        </svg></div>
       </div>
-      <div class="bomb-msg" id="bombMsg" aria-live="polite">폭탄을 옆 사람에게 넘겨요!</div>
+      <div class="bomb-msg" id="bombMsg" aria-live="polite">폭탄을 옆 사람에게 넘기세요</div>
     </div>
     <div class="ctrl">
       <div class="row">
@@ -203,7 +212,7 @@
         <button class="btn primary big" id="bombGo">불 붙이기</button>
         <button class="btn big" id="bombStop">멈추기</button>
       </div>
-      <p class="hint">터지는 시간은 아무도 몰라요. 째깍 소리가 점점 빨라져요. 터진 사람은 벌칙 운동!</p>
+      <p class="hint">터지는 시간은 아무도 모릅니다. 시계 소리가 점점 빨라지고, 터질 때 들고 있던 사람이 벌칙 운동을 합니다.</p>
     </div>
   </section>
 </main>

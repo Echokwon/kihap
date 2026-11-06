@@ -1,7 +1,7 @@
 /* 기합 — 월간 계획표 */
 (function () {
   const K = Kihap, D = KihapDB, $ = id => document.getElementById(id), esc = K.esc;
-  K.topbar('🗓️ 월간 계획표');
+  K.topbar('월간 계획표', '', 'calendar-days');
   K.markLast('planner', '월간 계획표');
   const H2C = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
 
@@ -34,14 +34,14 @@
         <div class="day-txt" contenteditable="plaintext-only" data-k="${k}" spellcheck="false" aria-label="${d}일 계획">${esc(plan.days[k] || '')}</div></div>`;
     }
     $('sheet').innerHTML = `
-      <div class="sh-head"><div class="sh-month">${m}월</div>
+      <div class="sh-head"><div class="sh-month">${m}<small>월</small></div>
         <div style="flex:1;display:grid"><div class="sh-dojo" contenteditable="plaintext-only" data-f="dojo" spellcheck="false">${esc(D.data.dojo || '우리 도장')} · ${y}</div>
         <div class="sh-title" contenteditable="plaintext-only" data-f="title" spellcheck="false">${esc(plan.title)}</div></div>
         <div class="legend">${TAGS.slice(1).map(([n, c]) => `<span style="background:${c}">${n}</span>`).join('')}</div></div>
       <div class="cal">${html}</div>
       <div class="sh-foot">
-        <div class="note"><h3>🎯 이달의 목표</h3><div contenteditable="plaintext-only" data-f="goal" spellcheck="false">${esc(plan.goal)}</div></div>
-        <div class="note"><h3>📢 알림</h3><div contenteditable="plaintext-only" data-f="notice" spellcheck="false">${esc(plan.notice)}</div></div>
+        <div class="note"><h3>이달의 목표</h3><div contenteditable="plaintext-only" data-f="goal" spellcheck="false">${esc(plan.goal)}</div></div>
+        <div class="note"><h3>알림</h3><div contenteditable="plaintext-only" data-f="notice" spellcheck="false">${esc(plan.notice)}</div></div>
       </div>`;
   }
   // contenteditable="plaintext-only" 를 못 쓰는 브라우저(파이어폭스)는 그냥 true 로
@@ -70,8 +70,8 @@
 
   $('copyPrev').onclick = async () => {
     const [y, m] = month.split('-').map(Number), pm = D.ym(new Date(y, m - 2, 1)), p = getPlan(pm);
-    if (!Object.keys(p.days).length) { K.toast('지난달 계획이 비어 있어요'); return; }
-    if (!(await K.confirm('지난달 요일별 계획을 이번 달 같은 요일·같은 주차에 복사할까요? 지금 쓴 내용은 덮어써요.', '복사'))) return;
+    if (!Object.keys(p.days).length) { K.toast('지난달 계획이 비어 있습니다'); return; }
+    if (!(await K.confirm('지난달 요일별 계획을 이번 달 같은 요일·같은 주차에 복사할까요? 지금 쓴 내용은 덮어씁니다.', '복사'))) return;
     // 같은 "n번째 무슨 요일" 로 옮김
     const [py, pmo] = pm.split('-').map(Number), days = new Date(y, m, 0).getDate();
     for (let d = 1; d <= days; d++) {
@@ -80,7 +80,7 @@
       const pk = pm + '-' + D.pad(off);
       if (p.days[pk]) plan.days[month + '-' + D.pad(d)] = p.days[pk];
     }
-    plan.goal = plan.goal || p.goal; save(); render(); fixCE(); K.toast('복사했어요');
+    plan.goal = plan.goal || p.goal; save(); render(); fixCE(); K.toast('복사했습니다');
   };
 
   $('print').onclick = () => { K.set(key(month), plan); print(); };
@@ -91,8 +91,8 @@
       const el = $('sheet'); el.classList.add('exporting'); document.activeElement.blur();
       const canvas = await html2canvas(el, { scale: 2, backgroundColor: null, useCORS: true });
       el.classList.remove('exporting');
-      canvas.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `계획표_${month}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); K.toast('저장했어요 (밴드·카톡에 올려 보세요)'); });
-    } catch (e) { $('sheet').classList.remove('exporting'); K.toast('이미지 저장 도구를 불러오지 못했어요. 인쇄 → PDF 저장을 써 주세요', 3000); }
+      canvas.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `계획표_${month}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); K.toast('이미지를 저장했습니다'); });
+    } catch (e) { $('sheet').classList.remove('exporting'); K.toast('이미지 저장 도구를 불러오지 못했습니다. 인쇄에서 PDF로 저장해 주세요', 3000); }
   };
 
   setTheme(K.get('plan:theme', 'dojang'));

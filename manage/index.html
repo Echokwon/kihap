@@ -9,17 +9,19 @@
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
 <link rel="stylesheet" href="../shared/base.css">
 <script src="../shared/core.js"></script>
+<script src="../shared/icons.js"></script>
 <script src="../shared/db.js"></script>
 <style>
   .grid-att td.d, .grid-att th.d { text-align: center; padding: .5em .3em; min-width: 26px; }
-  .grid-att td.d.on { color: var(--green); font-weight: 900; }
+  .grid-att td.d.on::after { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
   .grid-att th.d.we { color: var(--red); }
   .hist { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   .cls-row { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
-  .cls-row input { min-height: 42px; padding: 0 .7em; border-radius: 10px; border: 2px solid var(--line); background: var(--bg); }
+  .cls-row input { min-height: 42px; padding: 0 .7em; border-radius: 10px; border: 1.5px solid var(--line); background: var(--bg); }
   .cls-row input.n { flex: 1; min-width: 0; }
   .cls-row input.t { width: 120px; }
   .danger-zone { border-color: color-mix(in srgb, var(--red) 40%, var(--line)); }
@@ -28,11 +30,11 @@
 <body>
 <main class="page">
   <nav class="seg" role="tablist" id="tabs">
-    <button role="tab" data-t="roster" aria-selected="true">🧒 원생 명단</button>
-    <button role="tab" data-t="fees">💰 회비</button>
-    <button role="tab" data-t="belts">🥋 띠 · 심사</button>
-    <button role="tab" data-t="att">📅 출석 현황</button>
-    <button role="tab" data-t="settings">⚙️ 반 · 설정</button>
+    <button role="tab" data-t="roster" aria-selected="true"><i data-icon="users"></i>원생 명단</button>
+    <button role="tab" data-t="fees"><i data-icon="wallet"></i>회비</button>
+    <button role="tab" data-t="belts"><i data-icon="belt"></i>띠 · 심사</button>
+    <button role="tab" data-t="att"><i data-icon="calendar-days"></i>출석 현황</button>
+    <button role="tab" data-t="settings"><i data-icon="settings"></i>반 · 설정</button>
   </nav>
 
   <section id="t-roster" class="tabp"></section>

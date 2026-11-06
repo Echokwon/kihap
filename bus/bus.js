@@ -1,7 +1,8 @@
-/* 기합 — 차량 운행표: 운행(호차·시간) → 정류장 순서 → 탈 아이들, 그리고 운행 중 탑승 체크 */
+/* 기합 — 차량 운행표: 운행(호차·시간) · 정류장 순서 · 탈 아이들, 그리고 운행 중 탑승 체크 */
 (function () {
   const K = Kihap, D = KihapDB, $ = id => document.getElementById(id), esc = K.esc;
-  K.topbar('🚐 차량 운행표');
+  const I = (n, c) => K.icon(n, c);
+  K.topbar('차량 운행표', '', 'bus');
   K.markLast('bus', '차량 운행표');
   const R = () => D.data.bus.routes;
   let rid = K.get('bus:route', ''), mode = 'edit';
@@ -10,7 +11,7 @@
 
   function renderTabs() {
     if (!route() && R().length) rid = R()[0].id;
-    $('routes').innerHTML = R().map(r => `<button role="tab" data-id="${r.id}" aria-selected="${r.id === rid}">${esc(r.name)}</button>`).join('') || '<span class="muted">운행을 추가해 주세요 →</span>';
+    $('routes').innerHTML = R().map(r => `<button role="tab" data-id="${r.id}" aria-selected="${r.id === rid}">${esc(r.name)}</button>`).join('') || '<span class="muted">오른쪽 ‘운행 추가’로 시작하세요</span>';
   }
   $('routes').onclick = e => { const b = e.target.closest('[data-id]'); if (b) { rid = b.dataset.id; K.set('bus:route', rid); mode = 'edit'; render(); } };
   $('addRoute').onclick = () => {
@@ -22,7 +23,7 @@
   function render() {
     renderTabs();
     const r = route();
-    if (!r) { $('view').innerHTML = `<div class="box empty"><b>🚐</b>운행이 없어요. ‘+ 운행 추가’를 눌러 1호차부터 만들어 보세요.<br><span class="hint">예: 1호차 · 등원 2시 / 1호차 · 하원 5시</span></div>`; return; }
+    if (!r) { $('view').innerHTML = `<div class="box empty"><div>${I('bus', 'xl')}</div>등록된 운행이 없습니다. ‘운행 추가’로 1호차부터 만들어 주세요.<br><span class="hint">예: 1호차 · 등원 2시 / 1호차 · 하원 5시</span></div>`; return; }
     mode === 'drive' ? drive(r) : edit(r);
   }
 
@@ -34,26 +35,26 @@
     $('view').innerHTML = `
       <div class="box toolbar">
         <label class="field grow">운행 이름<input id="rName" value="${esc(r.name)}"></label>
-        <button class="btn primary big" id="drive">▶ 운행 시작</button>
-        <button class="btn" id="print">🖨 인쇄</button>
-        <button class="btn" id="dup">복제</button>
+        <button class="btn primary big" id="drive">${I('play')}운행 시작</button>
+        <button class="btn" id="print">${I('printer')}인쇄</button>
+        <button class="btn" id="dup">${I('copy')}복제</button>
         <button class="btn danger" id="del">삭제</button>
       </div>
-      <p class="hint no-print">정류장 ${r.stops.length}곳 · 탑승 ${total}명 · ▲▼로 순서를 바꿔요. 아이 이름 옆 ✕로 빼요.</p>
+      <p class="hint no-print">정류장 ${r.stops.length}곳 · 탑승 ${total}명 · 화살표로 순서를 바꾸고, 이름 옆 X로 뺍니다.</p>
       <div class="stops">${r.stops.map((s, i) => `
         <div class="stop" data-i="${i}"><div class="stop-n"></div><div class="stop-body">
           <div class="stop-head">
             <input class="tm" type="time" value="${esc(s.time)}" aria-label="시간">
             <input class="nm" value="${esc(s.name)}" placeholder="정류장 이름 (예: 한빛아파트 정문)" aria-label="정류장 이름">
-            <button class="btn sm" data-mv="-1" ${i ? '' : 'disabled'} aria-label="위로">▲</button>
-            <button class="btn sm" data-mv="1" ${i < r.stops.length - 1 ? '' : 'disabled'} aria-label="아래로">▼</button>
+            <button class="btn sm" data-mv="-1" ${i ? '' : 'disabled'} aria-label="위로">${I('chevron-up')}</button>
+            <button class="btn sm" data-mv="1" ${i < r.stops.length - 1 ? '' : 'disabled'} aria-label="아래로">${I('chevron-down')}</button>
             <button class="btn sm danger" data-rm aria-label="정류장 삭제">삭제</button>
           </div>
-          <div class="kids">${s.sids.map(id => D.student(id)).filter(Boolean).map(k => `<span class="kid">${esc(k.name)}<button data-out="${k.id}" aria-label="${esc(k.name)} 빼기">✕</button></span>`).join('')}
-            ${free.length ? `<select data-add aria-label="아이 추가"><option value="">+ 아이 추가</option>${free.map(k => `<option value="${k.id}">${esc(k.name)}${k.cls ? ' (' + esc(D.className(k.cls)) + ')' : ''}</option>`).join('')}</select>` : ''}
+          <div class="kids">${s.sids.map(id => D.student(id)).filter(Boolean).map(k => `<span class="kid">${esc(k.name)}<button data-out="${k.id}" aria-label="${esc(k.name)} 빼기">${I('x')}</button></span>`).join('')}
+            ${free.length ? `<select data-add aria-label="아이 추가"><option value="">아이 추가…</option>${free.map(k => `<option value="${k.id}">${esc(k.name)}${k.cls ? ' (' + esc(D.className(k.cls)) + ')' : ''}</option>`).join('')}</select>` : ''}
           </div></div></div>`).join('')}
       </div>
-      <div class="row no-print"><button class="btn" id="addStop">+ 정류장 추가</button></div>
+      <div class="row no-print"><button class="btn" id="addStop">${I('plus')}정류장 추가</button></div>
       ${studs.length ? `<p class="hint no-print">이 운행에 안 탄 원생: ${free.map(k => esc(k.name)).join(', ') || '없음'}</p>` : `<p class="hint">원생을 먼저 <a href="../manage/">원생 관리</a>에서 등록하면 정류장에 넣을 수 있어요.</p>`}`;
 
     $('rName').onchange = e => { r.name = e.target.value.trim() || r.name; D.save(); renderTabs(); };
@@ -93,8 +94,8 @@
         const fin = kids.length && kids.every(k => ride[k.id] || (isDrop && !came[k.id]));
         return `<div class="stop ${fin ? 'done' : ''}"><div class="stop-n"></div><div class="stop-body">
           <h3>${esc(s.time || '')} ${esc(s.name || '정류장')}</h3>
-          <div class="kids">${kids.map(k => `<button class="ride ${ride[k.id] ? 'on' : ''} ${isDrop && !came[k.id] ? 'away' : ''}" data-id="${k.id}">${ride[k.id] ? '✓ ' : ''}${esc(k.name)}${isDrop && !came[k.id] ? ' · 오늘 결석' : ''}</button>`).join('') || '<span class="muted">타는 아이 없음</span>'}
-            ${kids.some(k => k.phone) ? `<span class="hint">${kids.filter(k => k.phone).map(k => `<a href="tel:${esc(k.phone)}">📞 ${esc(k.name)}</a>`).join(' · ')}</span>` : ''}</div>
+          <div class="kids">${kids.map(k => `<button class="ride ${ride[k.id] ? 'on' : ''} ${isDrop && !came[k.id] ? 'away' : ''}" data-id="${k.id}">${ride[k.id] ? I('check') : ''}${esc(k.name)}${isDrop && !came[k.id] ? ' · 오늘 결석' : ''}</button>`).join('') || '<span class="muted">타는 아이 없음</span>'}
+            ${kids.some(k => k.phone) ? `<span class="hint">${kids.filter(k => k.phone).map(k => `<a href="tel:${esc(k.phone)}">${I('phone')} ${esc(k.name)}</a>`).join(' · ')}</span>` : ''}</div>
         </div></div>`; }).join('')}
       </div>`;
     $('back').onclick = () => { mode = 'edit'; render(); };
@@ -103,7 +104,7 @@
       const v = K.get(rideKey(), {}); v[b.dataset.id] = !v[b.dataset.id]; if (!v[b.dataset.id]) delete v[b.dataset.id];
       K.set(rideKey(), v); K.sound[v[b.dataset.id] ? 'pop' : 'tick'](); render();
       const left = all.filter(id => !v[id] && !(isDrop && !came[id])).length;
-      if (!left && all.length) { K.sound.fanfare(); K.toast('모두 확인했어요! 운행 끝 🎉'); }
+      if (!left && all.length) { K.sound.fanfare(); K.toast('모두 확인했습니다. 운행 완료'); }
     });
   }
 

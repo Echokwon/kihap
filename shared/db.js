@@ -28,7 +28,7 @@
     K.set(KEY, db);
     listeners.forEach(f => { try { f(db); } catch (e) {} });
   }
-  // 다른 탭(예: 출석 화면 ↔ 원생관리)에서 바뀌면 다시 읽기
+  // 다른 탭(예: 출석 화면과 원생관리)에서 바뀌면 다시 읽기
   addEventListener('storage', e => { if (e.key === 'kihap:' + KEY) { load(); listeners.forEach(f => f(db)); } });
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);

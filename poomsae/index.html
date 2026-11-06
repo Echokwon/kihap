@@ -9,9 +9,11 @@
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
 <link rel="stylesheet" href="../shared/base.css">
 <script src="../shared/core.js"></script>
+<script src="../shared/icons.js"></script>
 <script src="../shared/db.js"></script>
 <style>
   .modebar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
@@ -23,69 +25,72 @@
   @media (min-width: 980px) { .score-grid { grid-template-columns: 1.25fr 1fr; align-items: start; } }
   .who { display: flex; gap: 8px; align-items: center; }
   .who select { flex: 1; min-width: 0; }
-  .who-name { font-family: var(--f-display); font-size: 1.8rem; }
+  .who-name { font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: 1.8rem; }
   .judges { display: flex; gap: 6px; flex-wrap: wrap; }
-  .judges button { min-height: 44px; min-width: 64px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg-2); font-weight: 900; cursor: pointer; }
+  .judges button { min-height: 44px; min-width: 64px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--bg-2); font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
   .judges button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-  .judges button.done::after { content: ' ✓'; color: var(--green); }
+  .judges button.done::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
 
-  .comp { display: grid; gap: 10px; padding: 14px; border-radius: 16px; background: var(--bg-3); }
+  .comp { display: grid; gap: 10px; padding: 14px; border-radius: 10px; background: var(--bg-3); }
   .comp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
   .comp-head h3 { font-size: 1.3rem; }
-  .comp-head b { font-family: var(--f-display); font-size: 2.4rem; line-height: 1; font-variant-numeric: tabular-nums; }
+  .comp-head b { font-family: var(--f-num); font-weight: 700; font-size: 2.8rem; line-height: 1; font-variant-numeric: tabular-nums; }
   .ded-btns { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; }
   .ded-btns button { min-height: 72px; font-size: 1.3rem; }
   .ded-log { font-size: .85rem; color: var(--muted); min-height: 1.3em; word-break: break-all; }
   .item { display: grid; grid-template-columns: 1fr auto 3.6em auto; gap: 8px; align-items: center; }
   .item span { font-weight: 700; }
-  .item b { text-align: center; font-family: var(--f-display); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
-  .item button { width: 48px; min-height: 48px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg-2); font-size: 1.4rem; font-weight: 900; cursor: pointer; }
+  .item b { text-align: center; font-family: var(--f-num); font-weight: 700; font-size: 1.9rem; font-variant-numeric: tabular-nums; }
+  .item button { width: 48px; min-height: 48px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--bg-2); font-size: 1.4rem; font-weight: 800; cursor: pointer; }
   .item input[type=range] { grid-column: 1 / -1; accent-color: var(--red); }
   .sheet-total { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .sheet-total b { font-family: var(--f-display); font-size: 2rem; }
+  .sheet-total b { font-family: var(--f-num); font-weight: 700; font-size: 2.4rem; }
 
-  .final { text-align: center; padding: 14px; border-radius: 16px; background: var(--navy); color: #fff; }
-  .final b { display: block; font-family: var(--f-display); font-size: 3.6rem; line-height: 1.05; }
+  .final { text-align: center; padding: 14px; border-radius: 10px; background: var(--navy); color: #fff; }
+  .final b { display: block; font-family: var(--f-num); font-weight: 700; font-size: 4.4rem; line-height: 1; }
   .tbl td.drop { text-decoration: line-through; color: var(--muted); }
   .tbl td.num, .tbl th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .rank1 td { background: color-mix(in srgb, #ffd23f 22%, transparent); }
 
   /* 발표 화면 */
-  .show { min-height: min(72vh, 680px); border-radius: 24px; background: #0b1020; color: #fff; padding: clamp(16px, 3vw, 36px); display: grid; align-content: center; gap: 14px; }
+  .show { min-height: min(72vh, 680px); border-radius: 14px; background: #0b1020; color: #fff; padding: clamp(16px, 3vw, 36px); display: grid; align-content: center; gap: 14px; }
   .show:fullscreen { border-radius: 0; min-height: 100vh; }
-  .show h2 { font-size: clamp(1.6rem, 4vw, 3rem); text-align: center; color: #ffd23f; }
+  .show h2 { font-size: clamp(1.6rem, 4vw, 3rem); text-align: center; color: #ffd23f; display: flex; align-items: center; justify-content: center; gap: .35em; }
   .podium { display: grid; gap: 10px; }
-  .pod { display: grid; grid-template-columns: 3.2em 1fr auto; gap: 14px; align-items: center; padding: .4em .8em; border-radius: 16px; background: rgba(255, 255, 255, .07); font-size: clamp(1.2rem, 3vw, 2.4rem); animation: rise .5s both; }
-  .pod .rk { font-family: var(--f-display); font-size: 1.5em; text-align: center; }
-  .pod .nm { font-weight: 900; }
+  .pod { display: grid; grid-template-columns: 2.4em 1fr auto; gap: 14px; align-items: center; padding: .4em .8em; border-radius: 10px; background: rgba(255, 255, 255, .07); font-size: clamp(1.2rem, 3vw, 2.4rem); animation: rise .4s both; }
+  .pod .rk { font-family: var(--f-num); font-weight: 700; font-size: 1.2em; text-align: center; width: 1.8em; height: 1.8em; line-height: 1.8em; border-radius: 50%; justify-self: center; background: rgba(255, 255, 255, .12); }
+  .pod .rk.m1 { background: #e6b422; color: #1b1300; }
+  .pod .rk.m2 { background: #b8c0cc; color: #16213a; }
+  .pod .rk.m3 { background: #c07a3e; color: #fff; }
+  .pod .nm { font-weight: 800; }
   .pod .nm small { display: block; font-size: .5em; opacity: .7; font-weight: 500; }
-  .pod .sc { font-family: var(--f-display); font-size: 1.4em; font-variant-numeric: tabular-nums; color: #ffd23f; }
+  .pod .sc { font-family: var(--f-num); font-weight: 700; font-size: 1.6em; font-variant-numeric: tabular-nums; color: #ffd23f; }
   .pod.r1 { background: rgba(255, 210, 63, .2); }
-  @keyframes rise { from { opacity: 0; transform: translateY(20px); } }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
   .cur-big { text-align: center; display: grid; gap: 8px; }
-  .cur-big .nm { font-family: var(--f-display); font-size: clamp(2.4rem, 8vw, 6rem); line-height: 1; }
+  .cur-big .nm { font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(2.4rem, 8vw, 6rem); line-height: 1; }
   .cur-big .tm { font-size: clamp(1rem, 2.5vw, 1.8rem); opacity: .75; }
-  .cur-big .sc { font-family: var(--f-display); font-size: clamp(5rem, 18vw, 14rem); line-height: 1; color: #ffd23f; font-variant-numeric: tabular-nums; }
+  .cur-big .sc { font-family: var(--f-num); font-weight: 700; font-size: clamp(6rem, 21vw, 16rem); line-height: 1; color: #ffd23f; font-variant-numeric: tabular-nums; }
   .cur-big .parts { display: flex; justify-content: center; gap: clamp(16px, 5vw, 60px); font-size: clamp(1rem, 2.6vw, 2rem); }
-  .cur-big .parts b { display: block; font-family: var(--f-display); font-size: 1.6em; }
+  .cur-big .parts b { display: block; font-family: var(--f-num); font-weight: 700; font-size: 1.9em; }
 </style>
 </head>
 <body>
 <main class="page">
   <div class="box modebar">
     <div class="seg" id="modeSeg" role="tablist">
-      <button role="tab" data-m="std">🥋 공인 품새</button>
-      <button role="tab" data-m="free">🎵 자유 품새</button>
+      <button role="tab" data-m="std"><i data-icon="belt"></i>공인 품새</button>
+      <button role="tab" data-m="free"><i data-icon="music"></i>자유 품새</button>
     </div>
     <div class="chips" id="judgeN" aria-label="심판 수"></div>
     <span class="rule grow" id="rule"></span>
   </div>
 
   <nav class="seg" role="tablist" id="tabs">
-    <button role="tab" data-t="list" aria-selected="true">👥 선수 명단</button>
-    <button role="tab" data-t="score">✍️ 채점</button>
-    <button role="tab" data-t="result">🏅 결과</button>
-    <button role="tab" data-t="show">📺 결과 발표</button>
+    <button role="tab" data-t="list" aria-selected="true"><i data-icon="users"></i>선수 명단</button>
+    <button role="tab" data-t="score"><i data-icon="clipboard-check"></i>채점</button>
+    <button role="tab" data-t="result"><i data-icon="medal"></i>결과</button>
+    <button role="tab" data-t="show"><i data-icon="maximize"></i>결과 발표</button>
   </nav>
 
   <section class="tabp" id="t-list"></section>

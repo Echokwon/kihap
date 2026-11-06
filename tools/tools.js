@@ -5,19 +5,19 @@
   const awake = () => { K._wantAwake = true; K.keepAwake(true); };
 
   const TOOLS = [
-    { id: 'timer', ic: '⏲️', name: '타이머', go: 'timerGo' },
-    { id: 'interval', ic: '🔁', name: '인터벌', go: 'ivGo' },
-    { id: 'stopwatch', ic: '⏱️', name: '스톱워치', go: 'swGo' },
-    { id: 'dice', ic: '🎲', name: '주사위', go: 'diceGo' },
-    { id: 'draw', ic: '🎯', name: '랜덤 뽑기', go: 'drawGo' },
-    { id: 'bracket', ic: '🏆', name: '토너먼트', go: null },
-    { id: 'signal', ic: '🚥', name: '반응 신호', go: 'sigGo' },
-    { id: 'bomb', ic: '💣', name: '폭탄 돌리기', go: 'bombGo' }
+    { id: 'timer', ic: 'timer', name: '타이머', go: 'timerGo' },
+    { id: 'interval', ic: 'repeat', name: '인터벌', go: 'ivGo' },
+    { id: 'stopwatch', ic: 'alarm-clock', name: '스톱워치', go: 'swGo' },
+    { id: 'dice', ic: 'dices', name: '주사위', go: 'diceGo' },
+    { id: 'draw', ic: 'shuffle', name: '랜덤 뽑기', go: 'drawGo' },
+    { id: 'bracket', ic: 'trophy', name: '토너먼트', go: null },
+    { id: 'signal', ic: 'traffic-cone', name: '반응 신호', go: 'sigGo' },
+    { id: 'bomb', ic: 'bomb', name: '폭탄 돌리기', go: 'bombGo' }
   ];
   const leave = {};   // 다른 도구로 갈 때 멈춰야 하는 것들
 
   /* ================= 화면 전환 ================= */
-  $('tabs').innerHTML = TOOLS.map(t => `<a href="#${t.id}" data-id="${t.id}">${t.ic} ${t.name}</a>`).join('');
+  $('tabs').innerHTML = TOOLS.map(t => `<a href="#${t.id}" data-id="${t.id}">${K.icon(t.ic)}${t.name}</a>`).join('');
   let cur = null;
   function route() {
     const id = (location.hash.slice(1) || 'timer');
@@ -28,7 +28,7 @@
     document.querySelectorAll('#tabs a').forEach(a => a.removeAttribute('aria-current'));
     const on = document.querySelector(`#tabs a[data-id="${t.id}"]`);
     if (on) { on.setAttribute('aria-current', 'page'); on.scrollIntoView({ block: 'nearest', inline: 'center' }); }
-    $('tbTitle').textContent = t.ic + ' ' + t.name;
+    $('tbTitle').innerHTML = `<span class="tb-ic">${K.icon(t.ic)}</span>${t.name}`;
     document.title = t.name + ' · 기합';
     K.markLast(t.id, t.name);
   }
@@ -41,8 +41,8 @@
     if (t && t.go) { e.preventDefault(); $(t.go).click(); }
   });
 
-  const syncBtns = () => { $('muteBtn').textContent = K.muted() ? '🔇' : '🔊'; $('themeBtn').textContent = K.isDark() ? '☀️' : '🌙'; };
-  $('muteBtn').onclick = () => { K.setMuted(!K.muted()); syncBtns(); K.toast(K.muted() ? '소리 꺼짐' : '소리 켜짐'); };
+  const syncBtns = () => { $('muteBtn').innerHTML = K.icon(K.muted() ? 'volume-x' : 'volume-2'); $('themeBtn').innerHTML = K.icon(K.isDark() ? 'sun' : 'moon'); };
+  $('muteBtn').onclick = () => { K.setMuted(!K.muted()); syncBtns(); K.toast(K.muted() ? '소리를 껐습니다' : '소리를 켰습니다'); };
   $('themeBtn').onclick = () => { K.toggleTheme(); syncBtns(); };
   $('fsBtn').onclick = () => { const p = document.querySelector('.panel:not([hidden]) .stage'); K.fullscreen(p); };
   syncBtns();
@@ -56,7 +56,7 @@
     });
   };
 
-  /* ================= ⏲️ 타이머 ================= */
+  /* ================= 타이머 ================= */
   (function () {
     const C = 2 * Math.PI * 90, ring = $('timerRing'), stage = $('timerStage');
     ring.style.strokeDasharray = C;
@@ -91,10 +91,10 @@
     setTotal(total);
   })();
 
-  /* ================= 🔁 인터벌 ================= */
+  /* ================= 인터벌 ================= */
   (function () {
     const stage = $('ivStage');
-    const NAMES = { prep: '준비', work: '운동!', rest: '휴식', done: '끝! 수고했어요' };
+    const NAMES = { prep: '준비', work: '운동', rest: '휴식', done: '수고했습니다' };
     const PRESETS = [['타바타', 10, 20, 10, 8], ['30/30 ×6', 10, 30, 30, 6], ['40/20 ×5', 10, 40, 20, 5], ['1분/30초 ×5', 10, 60, 30, 5]];
     $('ivPresets').innerHTML = PRESETS.map((p, i) => `<button class="chip" data-v="${i}">${p[0]}</button>`).join('');
     chipGroup('ivPresets', i => { const p = PRESETS[i]; ['ivPrep', 'ivWork', 'ivRest', 'ivRounds'].forEach((id, k) => $(id).value = p[k + 1]); reset(); });
@@ -126,11 +126,11 @@
     }
     function enter(i) {
       idx = i; const p = plan[idx];
-      if (!p) { stop(); K.sound.end(); if ($('ivVoice').checked) K.say('끝! 수고했어요'); render(); return; }
+      if (!p) { stop(); K.sound.end(); if ($('ivVoice').checked) K.say('끝. 수고했습니다', true); render(); return; }
       remain = p.dur; endAt = now() + remain; lastSec = null;
-      if (p.type === 'work') { K.sound.go(); if ($('ivVoice').checked) K.say('운동'); }
-      else if (p.type === 'rest') { K.sound.whistle(); if ($('ivVoice').checked) K.say('휴식'); }
-      else if ($('ivVoice').checked) K.say('준비');
+      if (p.type === 'work') { K.sound.go(); if ($('ivVoice').checked) K.say('운동', true); }
+      else if (p.type === 'rest') { K.sound.whistle(); if ($('ivVoice').checked) K.say('휴식', true); }
+      else if ($('ivVoice').checked) K.say('준비', true);
     }
     function tick() {
       remain = endAt - now();
@@ -154,7 +154,7 @@
     reset();
   })();
 
-  /* ================= ⏱️ 스톱워치 ================= */
+  /* ================= 스톱워치 ================= */
   (function () {
     let acc = 0, startT = 0, running = false, raf = 0, laps = [];
     const elapsed = () => acc + (running ? now() - startT : 0);
@@ -182,10 +182,10 @@
     render();
   })();
 
-  /* ================= 🎲 주사위 ================= */
+  /* ================= 주사위 ================= */
   (function () {
     const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
-    const DEF = ['팔굽혀펴기 10회', '스쿼트 15회', '점핑잭 20회', '버피 5회', '앞차기 20회', '쉬어요 🎉'];
+    const DEF = ['팔굽혀펴기 10회', '스쿼트 15회', '점핑잭 20회', '버피 5회', '앞차기 20회', '쉬기'];
     let mode = K.get('dice:mode', 'num'), count = K.get('dice:count', 1), rolling = false;
     $('diceFaces').value = K.get('dice:faces', DEF).join('\n');
     const faces = () => { const f = $('diceFaces').value.split('\n').map(s => s.trim()).filter(Boolean); return f.length ? f : DEF; };
@@ -224,7 +224,7 @@
     sync();
   })();
 
-  /* ================= 🎯 랜덤 뽑기 · 팀 나누기 ================= */
+  /* ================= 랜덤 뽑기 · 팀 나누기 ================= */
   (function () {
     const TEAM_COLORS = ['#d8323c', '#2457c5', '#18995a', '#e8a500', '#8a3ffc', '#0f8b8d', '#c2410c', '#be185d', '#475569', '#65a30d'];
     $('drawNames').value = K.get('draw:names', '');
@@ -237,14 +237,14 @@
     }
     $('drawNames').addEventListener('input', () => { K.set('draw:names', $('drawNames').value); info(); });
     $('drawNoRepeat').addEventListener('change', info);
-    $('drawResetUsed').onclick = () => { used.clear(); saveUsed(); info(); K.toast('뽑힌 기록을 지웠어요'); };
+    $('drawResetUsed').onclick = () => { used.clear(); saveUsed(); info(); K.toast('뽑힌 기록을 지웠습니다'); };
 
     $('drawGo').onclick = () => {
       if (busy) return;
       const all = names(); if (!all.length) { K.toast('이름을 먼저 넣어 주세요'); $('drawNames').focus(); return; }
       const noRep = $('drawNoRepeat').checked;
       let pool = noRep ? all.filter(n => !used.has(n)) : all;
-      if (!pool.length) { used.clear(); saveUsed(); pool = all; K.toast('모두 한 번씩 뽑혔어요. 처음부터 다시!'); }
+      if (!pool.length) { used.clear(); saveUsed(); pool = all; K.toast('모두 한 번씩 뽑혔습니다. 처음부터 다시 뽑습니다'); }
       const n = Math.min(Math.round(num('drawN', 1, 50, 1)), pool.length);
       const winners = K.shuffle(pool).slice(0, n);
       const show = $('drawShow'); $('drawTeams').innerHTML = ''; busy = true;
@@ -262,17 +262,17 @@
 
     $('teamGo').onclick = () => {
       const all = names(); const T = Math.round(num('teamN', 2, 10, 2));
-      if (all.length < T) { K.toast(`팀 ${T}개를 만들려면 ${T}명 이상 필요해요`); return; }
+      if (all.length < T) { K.toast(`팀 ${T}개를 만들려면 ${T}명 이상 필요합니다`); return; }
       const teams = Array.from({ length: T }, () => []);
       K.shuffle(all).forEach((n, i) => teams[i % T].push(n));
-      $('drawShow').className = 'draw-show'; $('drawShow').textContent = `${T}팀 완성!`;
+      $('drawShow').className = 'draw-show'; $('drawShow').textContent = `${T}팀으로 나눴습니다`;
       $('drawTeams').innerHTML = teams.map((t, i) => `<div class="team" style="background:${TEAM_COLORS[i]}"><h3>${i + 1}팀</h3><ul>${t.map(n => `<li>${K.esc(n)}</li>`).join('')}</ul></div>`).join('');
       K.sound.fanfare();
     };
     info();
   })();
 
-  /* ================= 🏆 토너먼트 ================= */
+  /* ================= 토너먼트 ================= */
   (function () {
     $('brNames').value = K.get('br:names', '');
     $('brNames').addEventListener('input', () => K.set('br:names', $('brNames').value));
@@ -282,7 +282,7 @@
     function make() {
       let list = [...new Set($('brNames').value.split(/[\n,]/).map(s => s.trim()).filter(Boolean))];
       if (list.length < 2) { K.toast('2명 이상 넣어 주세요'); return; }
-      if (list.length > 64) { K.toast('64명까지 돼요'); list = list.slice(0, 64); }
+      if (list.length > 64) { K.toast('64명까지 넣을 수 있습니다'); list = list.slice(0, 64); }
       if ($('brShuffle').checked) list = K.shuffle(list);
       let size = 1; while (size < list.length) size *= 2;
       const slots = list.concat(Array(size - list.length).fill(null));
@@ -312,7 +312,7 @@
       $('bracket').innerHTML = rounds.map((ms, r) => `<div class="round"><h3>${roundName(ms.length)}</h3>${ms.map((m, i) => `<div class="match">${btn(m, r, i, 'a')}${btn(m, r, i, 'b')}</div>`).join('')}</div>`).join('');
       const champ = rounds.length && rounds[rounds.length - 1][0].w;
       $('champ').hidden = !champ;
-      if (champ) $('champ').innerHTML = `🏆 ${K.esc(champ)}<small>우승을 축하해요!</small>`;
+      if (champ) $('champ').innerHTML = `${K.icon('trophy', 'xl')}<span>${K.esc(champ)}</span><small>우승</small>`;
     }
     $('bracket').addEventListener('click', e => {
       const b = e.target.closest('button[data-r]'); if (!b) return;
@@ -326,12 +326,12 @@
     $('brMake').onclick = make;
   })();
 
-  /* ================= 🚥 반응 신호 ================= */
+  /* ================= 반응 신호 ================= */
   (function () {
     const stage = $('sigStage');
     const COLORS = [['#18995a', '달려!'], ['#d8323c', '멈춰!'], ['#e8a500', '앉아!'], ['#2457c5', '점프!']];
     let labels = K.get('sig:labels', COLORS.map(c => c[1]));
-    const ARROWS = [['←', '왼쪽'], ['→', '오른쪽'], ['↑', '앞으로'], ['↓', '뒤로']];
+    const ARROWS = [[0, '왼쪽'], [180, '오른쪽'], [90, '앞으로'], [270, '뒤로']];   // 화살표 아이콘 회전 각도
     let mode = 'color', running = false, to = null, last = -1;
 
     function legend() {
@@ -344,17 +344,17 @@
 
     function paint(bg, fg, big, sub) {
       stage.style.background = bg || ''; stage.style.color = fg || '';
-      $('sigBig').textContent = big; $('sigSub').textContent = sub || '';
+      $('sigBig').innerHTML = big; $('sigSub').textContent = sub || '';
     }
-    function idle() { paint('', '', '준비', mode === 'go' ? '시작을 누르면 "준비…" 뒤에 출발!' : '시작을 누르세요'); }
+    function idle() { paint('', '', '준비', mode === 'go' ? '시작하면 준비 신호 뒤 임의의 순간에 출발' : '시작을 누르세요'); }
     const pickNew = n => { let i; do { i = K.randInt(0, n - 1); } while (n > 1 && i === last); last = i; return i; };
     function next() {
       if (!running) return;
       let say = '';
-      if (mode === 'color') { const i = pickNew(4); paint(COLORS[i][0], '#fff', labels[i] || ' ', ''); say = labels[i]; }
-      else if (mode === 'arrow') { const i = pickNew(4); paint('var(--navy)', '#fff', ARROWS[i][0], ARROWS[i][1]); say = ARROWS[i][1]; }
-      else if (mode === 'number') { const i = pickNew(5); paint('var(--navy)', '#fff', String(i + 1), `${i + 1}명씩 모여!`); say = (i + 1) + '명'; }
-      K.sound.pop(); if ($('sigVoice').checked && say) K.say(say);
+      if (mode === 'color') { const i = pickNew(4); paint(COLORS[i][0], '#fff', K.esc(labels[i] || ' '), ''); say = labels[i]; }
+      else if (mode === 'arrow') { const i = pickNew(4); paint('var(--navy)', '#fff', `<span class="arr" style="--r:${ARROWS[i][0]}deg">${K.icon('arrow-left')}</span>`, ARROWS[i][1]); say = ARROWS[i][1]; }
+      else if (mode === 'number') { const i = pickNew(5); paint('var(--navy)', '#fff', `<span class="num">${i + 1}</span>`, `${i + 1}명씩 모이기`); say = (i + 1) + '명'; }
+      K.sound.pop(); if ($('sigVoice').checked && say) K.say(say, true);
       schedule(next);
     }
     function schedule(fn) {
@@ -364,8 +364,8 @@
     function start() {
       running = true; awake(); $('sigGo').textContent = '멈춤';
       if (mode === 'go') {
-        paint('var(--yellow)', '#1b1300', '준비…', '신호를 기다려요'); K.sound.beep(); if ($('sigVoice').checked) K.say('준비');
-        schedule(() => { if (!running) return; paint('var(--green)', '#fff', '출발!', ''); K.sound.whistle(); running = false; $('sigGo').textContent = '다시'; });
+        paint('var(--yellow)', '#1b1300', '준비', '신호를 기다리세요'); K.sound.beep(); if ($('sigVoice').checked) K.say('준비', true);
+        schedule(() => { if (!running) return; paint('var(--green)', '#fff', '출발', ''); K.sound.whistle(); running = false; $('sigGo').textContent = '다시'; });
       } else next();
     }
     function stop() { running = false; clearTimeout(to); $('sigGo').textContent = '시작'; }
@@ -374,7 +374,7 @@
     legend(); idle();
   })();
 
-  /* ================= 💣 폭탄 돌리기 ================= */
+  /* ================= 폭탄 돌리기 ================= */
   (function () {
     const stage = $('bombStage');
     let lit = false, startT = 0, dur = 0, to = null;
@@ -390,16 +390,16 @@
     }
     function boom() {
       lit = false; clearTimeout(to); stage.dataset.st = 'boom';
-      K.sound.boom(); msg('펑! 💥 폭탄을 든 사람은 벌칙 운동!');
+      K.sound.boom(); msg('펑! 폭탄을 든 사람은 벌칙 운동');
       if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
       $('bombGo').textContent = '다시 불 붙이기';
     }
     function light() {
       let a = num('bombMin', 3, 300, 10), b = num('bombMax', 3, 300, 30); if (b < a) [a, b] = [b, a];
       dur = K.rand(a, b) * 1000; startT = now(); lit = true; stage.dataset.st = 'lit'; awake();
-      msg('째깍째깍… 빨리 넘겨요!'); $('bombGo').textContent = '불 붙는 중…'; tickLoop();
+      msg('불이 붙었습니다. 계속 넘기세요'); $('bombGo').textContent = '타는 중'; tickLoop();
     }
-    function stop() { lit = false; clearTimeout(to); stage.dataset.st = 'idle'; msg('폭탄을 옆 사람에게 넘겨요!'); $('bombGo').textContent = '불 붙이기'; }
+    function stop() { lit = false; clearTimeout(to); stage.dataset.st = 'idle'; msg('폭탄을 옆 사람에게 넘기세요'); $('bombGo').textContent = '불 붙이기'; }
     $('bombGo').onclick = () => { if (!lit) light(); };
     $('bombStop').onclick = stop;
     leave.bomb = stop;

@@ -1,7 +1,7 @@
 /* 기합 — 품새 채점: 공인 품새 · 자유 품새, 심판 1/3/5명 */
 (function () {
   const K = Kihap, D = KihapDB, $ = id => document.getElementById(id), esc = K.esc;
-  K.topbar('🥋 품새 채점');
+  K.topbar('품새 채점', '', 'belt');
   K.markLast('poomsae', '품새 채점');
 
   /* ---------- 채점 규칙 (점수는 0.1 단위 정수로 저장해서 소수 오차를 막음) ---------- */
@@ -102,7 +102,7 @@
   $('tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b) show(b.dataset.t); };
   function renderAll() { renderTop(); RENDER[tab](); }
 
-  /* ================= 👥 선수 명단 ================= */
+  /* ================= 선수 명단 ================= */
   RENDER.list = function () {
     const el = $('t-list');
     el.innerHTML = `
@@ -114,13 +114,13 @@
           <label class="field">부문<input id="aDiv" list="divList" placeholder="초등부 고학년"><datalist id="divList">${divs().map(d => `<option value="${esc(d)}">`).join('')}</datalist></label>
           <button class="btn primary" id="aAdd">추가</button>
         </div>
-        <div class="row"><button class="btn" id="aBulk">📋 여러 명 한꺼번에</button><button class="btn danger" id="aClear" ${P.list.length ? '' : 'disabled'}>${R().name} 명단·점수 모두 지우기</button></div>
+        <div class="row"><button class="btn" id="aBulk">${K.icon('list-checks')}여러 명 한꺼번에</button><button class="btn danger" id="aClear" ${P.list.length ? '' : 'disabled'}>${R().name} 명단·점수 모두 지우기</button></div>
       </div>
       ${P.list.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>#</th><th>이름</th><th>소속</th><th>부문</th><th>채점</th><th></th></tr></thead><tbody>
         ${P.list.map((c, i) => { const r = result(c); return `<tr><td>${i + 1}</td><td><b>${esc(c.name)}</b></td><td>${esc(c.team || '')}</td><td>${esc(c.div || '')}</td>
           <td>${r.ready ? `<span class="pill ok">${f2(r.total)}</span>` : `<span class="pill">${r.done}/${r.N}</span>`}</td>
           <td><button class="btn sm" data-go="${c.id}">채점</button> <button class="btn sm danger" data-del="${c.id}" aria-label="${esc(c.name)} 삭제">삭제</button></td></tr>`; }).join('')}
-      </tbody></table></div>` : `<div class="box empty"><b>👥</b>선수를 추가하면 채점을 시작할 수 있어요.</div>`}`;
+      </tbody></table></div>` : `<div class="box empty"><b>${K.icon('users', 'xl')}</b>선수를 추가하면 채점을 시작할 수 있습니다.</div>`}`;
     const addOne = () => {
       const name = $('aName').value.trim(); if (!name) { K.toast('이름을 넣어 주세요'); $('aName').focus(); return; }
       P.list.push({ id: D.uid(), name, team: $('aTeam').value.trim(), div: $('aDiv').value.trim(), sheets: [], ded: [] });
@@ -144,17 +144,17 @@
     });
   };
 
-  /* ================= ✍️ 채점 ================= */
+  /* ================= 채점 ================= */
   RENDER.score = function () {
     const el = $('t-score'), c = cur();
-    if (!c) { el.innerHTML = `<div class="box empty"><b>✍️</b>‘선수 명단’에서 선수를 먼저 추가해 주세요.</div>`; return; }
+    if (!c) { el.innerHTML = `<div class="box empty"><b>${K.icon('clipboard-check', 'xl')}</b>‘선수 명단’에서 선수를 먼저 추가해 주세요.</div>`; return; }
     P.cur = c.id;
     const s = sheet(c, judge), jp = judgeParts(s), r = result(c), idx = P.list.indexOf(c);
     const item = (grp, i, [name, min, max]) => `<div class="item"><span>${name}</span><button data-st="${grp},${i},-1" aria-label="${name} 0.1 내리기">−</button><b>${f1(s[grp][i])}</b><button data-st="${grp},${i},1" aria-label="${name} 0.1 올리기">+</button>
       <input type="range" min="${min}" max="${max}" step="1" value="${s[grp][i]}" data-rg="${grp},${i}" aria-label="${name}"></div>`;
     const sheetHTML = mode === 'std' ? `
       <div class="comp"><div class="comp-head"><h3>정확성 <small class="muted">(4.0에서 빼기)</small></h3><b>${jp.acc.toFixed(1)}</b></div>
-        <div class="ded-btns"><button class="btn big" data-ded="1">작은 실수<br>−0.1</button><button class="btn big primary" data-ded="3">큰 실수<br>−0.3</button><button class="btn big" data-dedu ${s.d.length ? '' : 'disabled'} aria-label="실수 되돌리기">↶</button></div>
+        <div class="ded-btns"><button class="btn big" data-ded="1">작은 실수<br>−0.1</button><button class="btn big primary" data-ded="3">큰 실수<br>−0.3</button><button class="btn big" data-dedu ${s.d.length ? '' : 'disabled'} aria-label="실수 되돌리기">${K.icon('undo-2')}</button></div>
         <div class="ded-log">${s.d.length ? `작은 실수 ${s.d.filter(x => x === 1).length}번 · 큰 실수 ${s.d.filter(x => x === 3).length}번` : '실수 없음'}</div></div>
       <div class="comp"><div class="comp-head"><h3>표현성 <small class="muted">(항목당 0.5~2.0)</small></h3><b>${jp.pre.toFixed(1)}</b></div>
         ${R().pre.map((x, i) => item('p', i, x)).join('')}</div>` : `
@@ -167,18 +167,18 @@
     el.innerHTML = `
       <div class="score-grid">
         <div class="box" style="display:grid;gap:12px">
-          <div class="who"><button class="btn icon" id="prevC" ${idx > 0 ? '' : 'disabled'} aria-label="이전 선수">‹</button>
-            <select class="search" id="pickC" aria-label="선수">${P.list.map(x => `<option value="${x.id}" ${x === c ? 'selected' : ''}>${esc(x.name)}${x.div ? ' · ' + esc(x.div) : ''}${result(x).ready ? ' ✓' : ''}</option>`).join('')}</select>
-            <button class="btn icon" id="nextC" ${idx < P.list.length - 1 ? '' : 'disabled'} aria-label="다음 선수">›</button></div>
+          <div class="who"><button class="btn icon" id="prevC" ${idx > 0 ? '' : 'disabled'} aria-label="이전 선수">${K.icon('chevron-left')}</button>
+            <select class="search" id="pickC" aria-label="선수">${P.list.map(x => `<option value="${x.id}" ${x === c ? 'selected' : ''}>${esc(x.name)}${x.div ? ' · ' + esc(x.div) : ''}${result(x).ready ? ' (완료)' : ''}</option>`).join('')}</select>
+            <button class="btn icon" id="nextC" ${idx < P.list.length - 1 ? '' : 'disabled'} aria-label="다음 선수">${K.icon('chevron-right')}</button></div>
           <div><div class="who-name">${esc(c.name)}</div><div class="hint">${esc([c.team, c.div].filter(Boolean).join(' · '))}</div></div>
           <div class="judges" role="tablist">${Array.from({ length: P.judges }, (_, j) => `<button role="tab" data-j="${j}" aria-selected="${j === judge}" class="${c.sheets && c.sheets[j] && c.sheets[j].done ? 'done' : ''}">심판 ${j + 1}</button>`).join('')}</div>
           ${sheetHTML}
           <div class="sheet-total"><span>심판 ${judge + 1} 합계 <b>${jTotal.toFixed(1)}</b></span>
-            <button class="btn ${s.done ? '' : 'primary'} big" id="submit">${s.done ? '✓ 제출됨 (다시 고치기)' : '제출'}</button></div>
+            <button class="btn ${s.done ? '' : 'primary'} big" id="submit">${s.done ? K.icon('check') + '제출됨 · 다시 고치기' : '제출'}</button></div>
         </div>
         <div style="display:grid;gap:14px">
           ${mode === 'free' ? `<div class="box" style="display:grid;gap:8px"><h3 style="font-size:1.2rem">주심 감점 (선수 전체 점수에서 빼기)</h3>
-            <div class="row"><button class="btn" data-cd="1">−0.1</button><button class="btn" data-cd="3">−0.3</button><button class="btn" data-cdu ${(c.ded || []).length ? '' : 'disabled'}>↶ 되돌리기</button>
+            <div class="row"><button class="btn" data-cd="1">−0.1</button><button class="btn" data-cd="3">−0.3</button><button class="btn" data-cdu ${(c.ded || []).length ? '' : 'disabled'}>${K.icon('undo-2')}되돌리기</button>
             <b>감점 ${f1((c.ded || []).reduce((a, b) => a + b, 0))}</b></div><p class="hint">예: 시간 초과·경계선 벗어남 등</p></div>` : ''}
           ${summary(c, r)}
         </div>
@@ -188,7 +188,7 @@
     $('prevC').onclick = () => { P.cur = P.list[idx - 1].id; judge = 0; save(); RENDER.score(); };
     $('nextC').onclick = () => { P.cur = P.list[idx + 1].id; judge = 0; save(); RENDER.score(); };
     el.querySelectorAll('[data-j]').forEach(b => b.onclick = () => { judge = +b.dataset.j; RENDER.score(); });
-    const edit = fn => { if (s.done) { K.toast('제출된 점수예요. ‘다시 고치기’를 눌러 주세요'); return; } fn(); save(); RENDER.score(); };
+    const edit = fn => { if (s.done) { K.toast('제출된 점수입니다. ‘다시 고치기’를 눌러 주세요'); return; } fn(); save(); RENDER.score(); };
     el.querySelectorAll('[data-ded]').forEach(b => b.onclick = () => edit(() => { s.d.push(+b.dataset.ded); K.sound.tick(); }));
     const du = el.querySelector('[data-dedu]'); if (du) du.onclick = () => edit(() => s.d.pop());
     el.querySelectorAll('[data-st]').forEach(b => b.onclick = () => edit(() => {
@@ -212,7 +212,7 @@
     const parts = R().parts;
     const rows = Array.from({ length: P.judges }, (_, j) => {
       const s = (c.sheets || [])[j], jp = s ? judgeParts(s) : null;
-      return `<tr><td>심판 ${j + 1} ${s && s.done ? '✓' : ''}</td>${parts.map(({ k }) => `<td class="num ${r.ready && r.dropped[k].includes(j) ? 'drop' : ''}">${jp && s.done ? jp[k].toFixed(1) : '—'}</td>`).join('')}</tr>`;
+      return `<tr><td>심판 ${j + 1} ${s && s.done ? '<span class="pill ok">제출</span>' : ''}</td>${parts.map(({ k }) => `<td class="num ${r.ready && r.dropped[k].includes(j) ? 'drop' : ''}">${jp && s.done ? jp[k].toFixed(1) : '—'}</td>`).join('')}</tr>`;
     }).join('');
     return `<div class="box" style="display:grid;gap:10px">
       <h3 style="font-size:1.2rem">점수 계산 ${P.judges === 5 ? '<small class="muted">(줄 그은 점수는 뺀 점수)</small>' : ''}</h3>
@@ -221,18 +221,18 @@
       <div class="final">${r.ready ? `최종 점수<b>${f2(r.total)}</b>${r.ded ? `<span>감점 −${r.ded.toFixed(1)} 포함</span>` : ''}` : `채점 중 · ${r.done} / ${r.N} 제출<b>—</b>`}</div></div>`;
   }
 
-  /* ================= 🏅 결과 ================= */
+  /* ================= 결과 ================= */
   RENDER.result = function () {
     const el = $('t-result'), ds = divs();
     if (resDiv && !ds.includes(resDiv)) resDiv = '';
     const { done, wait } = ranking(resDiv || null), parts = R().parts;
     el.innerHTML = `
       <div class="toolbar"><div class="chips grow">${['', ...ds].map(d => `<button class="chip ${d === resDiv ? 'on' : ''}" data-d="${esc(d)}">${d ? esc(d) : '전체'}</button>`).join('')}</div>
-        <button class="btn" id="csv" ${P.list.length ? '' : 'disabled'}>⬇ 엑셀(CSV)</button></div>
+        <button class="btn" id="csv" ${P.list.length ? '' : 'disabled'}>${K.icon('download')}엑셀(CSV)</button></div>
       ${done.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>순위</th><th>이름</th><th>소속</th><th>부문</th>${parts.map(p => `<th class="num">${p.name}</th>`).join('')}${mode === 'free' ? '<th class="num">감점</th>' : ''}<th class="num">총점</th></tr></thead><tbody>
         ${done.map(x => `<tr class="${x.rank === 1 ? 'rank1' : ''}"><td><b>${x.rank}위</b>${x.tie ? ' <span class="pill">공동</span>' : ''}</td><td><b>${esc(x.c.name)}</b></td><td>${esc(x.c.team || '')}</td><td>${esc(x.c.div || '')}</td>
           ${parts.map(({ k }) => `<td class="num">${f2(x.r.parts[k])}</td>`).join('')}${mode === 'free' ? `<td class="num">${x.r.ded ? '−' + x.r.ded.toFixed(1) : ''}</td>` : ''}<td class="num"><b>${f2(x.r.total)}</b></td></tr>`).join('')}
-      </tbody></table></div>` : `<div class="box empty"><b>🏅</b>아직 채점이 끝난 선수가 없어요.</div>`}
+      </tbody></table></div>` : `<div class="box empty"><b>${K.icon('medal', 'xl')}</b>아직 채점이 끝난 선수가 없습니다.</div>`}
       ${wait.length ? `<p class="hint">채점 중: ${wait.map(x => `${esc(x.c.name)} (${x.r.done}/${x.r.N})`).join(', ')}</p>` : ''}
       <p class="hint">${$('rule').textContent}</p>`;
     el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { resDiv = b.dataset.d; RENDER.result(); });
@@ -248,7 +248,7 @@
     };
   };
 
-  /* ================= 📺 결과 발표 ================= */
+  /* ================= 결과 발표 ================= */
   RENDER.show = function () {
     const el = $('t-show'), ds = divs();
     if (showDiv && !ds.includes(showDiv)) showDiv = '';
@@ -256,21 +256,21 @@
       <div class="toolbar no-print">
         <div class="seg"><button data-sm="rank" aria-selected="${showMode === 'rank'}">순위</button><button data-sm="cur" aria-selected="${showMode === 'cur'}">지금 선수 점수</button></div>
         <select class="search" id="sDiv" style="width:auto" aria-label="부문">${['', ...ds].map(d => `<option value="${esc(d)}" ${d === showDiv ? 'selected' : ''}>${d ? esc(d) : '전체'}</option>`).join('')}</select>
-        <span class="grow"></span><button class="btn" id="sFs">⛶ 전체 화면</button>
+        <span class="grow"></span><button class="btn" id="sFs">${K.icon('maximize')}전체 화면</button>
       </div>
       <div class="show" id="stage"></div>`;
     const st = $('stage');
     if (showMode === 'rank') {
       const { done } = ranking(showDiv || null);
-      st.innerHTML = `<h2>🏆 ${esc(showDiv || R().name)} 결과</h2>` + (done.length
-        ? `<div class="podium">${done.slice(0, 8).map((x, i) => `<div class="pod ${x.rank === 1 ? 'r1' : ''}" style="animation-delay:${(Math.min(done.length, 8) - i) * .25}s"><span class="rk">${x.rank === 1 ? '🥇' : x.rank === 2 ? '🥈' : x.rank === 3 ? '🥉' : x.rank}</span><span class="nm">${esc(x.c.name)}<small>${esc(x.c.team || '')}</small></span><span class="sc">${f2(x.r.total)}</span></div>`).join('')}</div>`
-        : `<p style="text-align:center;opacity:.7">채점이 끝난 선수가 아직 없어요</p>`);
+      st.innerHTML = `<h2>${K.icon('trophy')}${esc(showDiv || R().name)} 결과</h2>` + (done.length
+        ? `<div class="podium">${done.slice(0, 8).map((x, i) => `<div class="pod ${x.rank === 1 ? 'r1' : ''}" style="animation-delay:${(Math.min(done.length, 8) - i) * .25}s"><span class="rk ${x.rank <= 3 ? 'm' + x.rank : ''}">${x.rank}</span><span class="nm">${esc(x.c.name)}<small>${esc(x.c.team || '')}</small></span><span class="sc">${f2(x.r.total)}</span></div>`).join('')}</div>`
+        : `<p style="text-align:center;opacity:.7">채점이 끝난 선수가 아직 없습니다</p>`);
     } else {
       const c = cur(), r = c && result(c);
       st.innerHTML = c ? `<div class="cur-big"><div class="tm">${esc([c.team, c.div].filter(Boolean).join(' · ') || R().name)}</div><div class="nm">${esc(c.name)}</div>
         <div class="sc">${r.ready ? f2(r.total) : '채점 중'}</div>
         ${r.ready ? `<div class="parts">${R().parts.map(({ k, name }) => `<span>${name}<b>${f2(r.parts[k])}</b></span>`).join('')}${r.ded ? `<span>감점<b>−${r.ded.toFixed(1)}</b></span>` : ''}</div>` : `<div class="tm">${r.done} / ${r.N} 심판 제출</div>`}</div>`
-        : `<p style="text-align:center">선수가 없어요</p>`;
+        : `<p style="text-align:center">선수가 없습니다</p>`;
     }
     el.querySelectorAll('[data-sm]').forEach(b => b.onclick = () => { showMode = b.dataset.sm; RENDER.show(); });
     $('sDiv').onchange = e => { showDiv = e.target.value; RENDER.show(); };

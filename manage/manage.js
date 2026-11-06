@@ -1,7 +1,8 @@
 /* 기합 — 원생 관리: 명단 · 회비 · 띠 · 출석 현황 · 설정 */
 (function () {
   const K = Kihap, D = KihapDB, $ = id => document.getElementById(id), esc = K.esc;
-  K.topbar('🧒 원생 관리');
+  const I = (n, c) => K.icon(n, c);
+  K.topbar('원생 관리', '', 'users');
   K.markLast('manage', '원생 관리');
 
   const won = n => (Number(n) || 0).toLocaleString('ko-KR') + '원';
@@ -32,8 +33,8 @@
           <input class="search grow" id="rQ" type="search" placeholder="이름·번호·연락처 검색" aria-label="검색">
           <select class="search" id="rCls" style="width:auto" aria-label="반"></select>
           <label class="check"><input type="checkbox" id="rAll"> 퇴원생도 보기</label>
-          <button class="btn" id="rPaste">📋 명단 한꺼번에 넣기</button>
-          <button class="btn primary" id="rAdd">+ 원생 추가</button>
+          <button class="btn" id="rPaste">${I('copy')}명단 한꺼번에 넣기</button>
+          <button class="btn primary" id="rAdd">${I('plus')}원생 추가</button>
         </div>
         <div id="rList"></div>`;
       $('rQ').oninput = e => { roster.q = e.target.value.trim(); RENDER.roster(); };
@@ -57,7 +58,7 @@
       (!roster.cls || s.cls === roster.cls) &&
       (!q || [s.name, s.pin, s.phone, s.parent].some(v => String(v || '').toLowerCase().includes(q))));
     if (!D.data.students.length) {
-      $('rList').innerHTML = `<div class="box empty"><b>🧒</b>아직 원생이 없어요.<br>‘+ 원생 추가’나 ‘명단 한꺼번에 넣기’로 시작하세요.</div>`;
+      $('rList').innerHTML = `<div class="box empty"><div>${I('users', 'xl')}</div>등록된 원생이 없습니다.<br>‘원생 추가’ 또는 ‘명단 한꺼번에 넣기’로 시작하세요.</div>`;
       return;
     }
     $('rList').innerHTML = `<div class="table-wrap"><table class="tbl"><thead><tr>
@@ -89,7 +90,7 @@
       </div>
       <label class="field">메모<textarea id="fMemo" rows="3">${esc(s.memo || '')}</textarea></label>
       ${id ? `<label class="check"><input type="checkbox" id="fActive" ${s.active !== false ? 'checked' : ''}> 재원 중</label>
-      <div class="hint">등록일 ${esc(s.joined || '')} · 마지막 출석 ${esc(D.lastSeen(id) || '없음')} · 얼굴 ${s.face ? '등록됨 ✅' : '미등록'}</div>
+      <div class="hint">등록일 ${esc(s.joined || '')} · 마지막 출석 ${esc(D.lastSeen(id) || '없음')} · 얼굴 ${s.face ? '등록됨' : '미등록'}</div>
       ${hist.length ? `<div class="hist"><b class="hint">띠 기록</b>${hist.map(h => `${D.beltChip(h.belt)}<span class="hint">${h.date}</span>`).join(' ')}</div>` : ''}` : ''}
       <div class="row" style="justify-content:space-between">
         ${id ? '<button class="btn danger" id="fDel">삭제</button>' : '<span></span>'}
@@ -99,8 +100,8 @@
         const name = m.querySelector('#fName').value.trim();
         const pin = m.querySelector('#fPin').value.trim();
         if (!name) { K.toast('이름을 넣어 주세요'); return; }
-        if (pin && !/^\d{4}$/.test(pin)) { K.toast('출석번호는 숫자 4자리예요'); return; }
-        if (pin && D.pinTaken(pin, id)) { K.toast('이미 쓰는 출석번호예요'); return; }
+        if (pin && !/^\d{4}$/.test(pin)) { K.toast('출석번호는 숫자 4자리입니다'); return; }
+        if (pin && D.pinTaken(pin, id)) { K.toast('이미 사용 중인 출석번호입니다'); return; }
         const belt = m.querySelector('#fBelt').value;
         const beltChanged = id && belt !== s.belt;
         const v = { id: id || undefined, name, pin: pin || D.nextPin(), cls: m.querySelector('#fCls').value, belt,
@@ -109,12 +110,12 @@
         if (id) v.active = m.querySelector('#fActive').checked;
         const saved = D.upsertStudent(v);
         if (beltChanged || !id) D.promote(saved.id, belt);
-        close(); K.toast(id ? '저장했어요' : `${name} 추가! 출석번호 ${saved.pin}`);
+        close(); K.toast(id ? '저장했습니다' : `${name} 추가 · 출석번호 ${saved.pin}`);
       };
       const del = m.querySelector('#fDel');
       if (del) del.onclick = async () => {
         close();
-        if (await K.confirm(`${esc(s.name)} 원생을 완전히 지울까요?<br><span class="hint">출석·회비·띠 기록도 함께 지워져요. 그만둔 원생은 ‘재원 중’ 체크만 끄는 걸 추천해요.</span>`, '지우기')) { D.removeStudent(id); K.toast('지웠어요'); }
+        if (await K.confirm(`${esc(s.name)} 원생을 완전히 지울까요?<br><span class="hint">출석·회비·띠 기록도 함께 지워져요. 그만둔 원생은 ‘재원 중’ 체크만 끄는 걸 추천해요.</span>`, '지우기')) { D.removeStudent(id); K.toast('삭제했습니다'); }
       };
     });
   }
@@ -129,7 +130,7 @@
       const lines = m.querySelector('#bText').value.split('\n').map(l => l.split(/[,\t]/).map(x => x.trim())).filter(p => p[0]);
       const cls = m.querySelector('#bCls').value;
       lines.forEach(([name, phone]) => { const s = D.upsertStudent({ name, phone: phone || '', cls, belt: '흰띠' }); D.data.belts.push({ id: D.uid(), sid: s.id, belt: '흰띠', date: D.day() }); });
-      D.save(); close(); K.toast(`${lines.length}명 추가했어요`);
+      D.save(); close(); K.toast(`${lines.length}명 추가했습니다`);
     });
   }
 
@@ -145,7 +146,7 @@
       <div class="toolbar">
         <label class="field" style="flex:none">달<input type="month" id="fm" value="${feeMonth}"></label>
         <span class="grow"></span>
-        <button class="btn" id="feeCsv">⬇ 엑셀(CSV)로 받기</button>
+        <button class="btn" id="feeCsv">${I('download')}엑셀(CSV)로 받기</button>
       </div>
       <div class="stats">
         <div class="stat"><b>${paid.length}명</b><span>납부</span></div>
@@ -162,7 +163,7 @@
         <td>${f ? `<button class="btn sm" data-un="${s.id}">취소</button>` : `<button class="btn sm primary" data-pay="${s.id}">납부</button>`}</td></tr>`).join('')}
       </tbody></table></div>
       <p class="hint">월 회비는 원생 정보에서 사람마다 정하거나, ‘반 · 설정’에서 기본 회비를 정할 수 있어요.</p>`
-      : `<div class="box empty"><b>💰</b>원생을 먼저 등록해 주세요.</div>`}`;
+      : `<div class="box empty"><div>${I('wallet', 'xl')}</div>원생을 먼저 등록해 주세요.</div>`}`;
     $('fm').onchange = e => { feeMonth = e.target.value || D.ym(); RENDER.fees(); };
     $('feeCsv').onclick = () => D.download(`회비_${feeMonth}.csv`, D.csv([['이름', '반', '금액', '상태', '방법', '날짜']].concat(rows.map(({ s, f, amt }) => [s.name, D.className(s.cls), f ? f.amount : amt, f ? '납부' : '미납', f ? f.method : '', f ? f.date : '']))), 'text/csv');
     el.querySelectorAll('[data-un]').forEach(b => b.onclick = () => D.unpay(b.dataset.un, feeMonth));
@@ -197,12 +198,12 @@
           const next = D.BELTS[D.BELTS.indexOf(s.belt || '흰띠') + 1];
           return `<tr><td><b>${esc(s.name)}</b> ${m >= gap && next ? '<span class="pill bad">심사 대상</span>' : ''}</td><td>${esc(D.className(s.cls))}</td><td>${D.beltChip(s.belt || '흰띠')}</td>
           <td class="muted">${esc(last || '')}</td><td>${m === 999 ? '' : m + '개월'}</td>
-          <td>${next ? `<button class="btn sm" data-up="${s.id}">→ ${next}</button>` : '최고 단계'}</td></tr>`; }).join('')}
-      </tbody></table></div>` : `<div class="box empty"><b>🥋</b>원생을 먼저 등록해 주세요.</div>`}`;
+          <td>${next ? `<button class="btn sm" data-up="${s.id}">${next}로 승급</button>` : '최고 단계'}</td></tr>`; }).join('')}
+      </tbody></table></div>` : `<div class="box empty"><div>${I('belt', 'xl')}</div>원생을 먼저 등록해 주세요.</div>`}`;
     $('bg').onchange = e => { K.set('belt:gap', +e.target.value); RENDER.belts(); };
     const up = sid => { const s = D.student(sid); const next = D.BELTS[D.BELTS.indexOf(s.belt || '흰띠') + 1]; if (next) D.promote(sid, next); };
     el.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { up(b.dataset.up); K.sound.fanfare(); });
-    $('bAll').onclick = async () => { if (await K.confirm(`심사 대상 ${due.length}명을 한 단계씩 올릴까요?`, '모두 승급')) { due.forEach(r => up(r.s.id)); K.sound.fanfare(); K.toast(`${due.length}명 승급!`); } };
+    $('bAll').onclick = async () => { if (await K.confirm(`심사 대상 ${due.length}명을 한 단계씩 올릴까요?`, '모두 승급')) { due.forEach(r => up(r.s.id)); K.sound.fanfare(); K.toast(`${due.length}명 승급 완료`); } };
   };
 
   /* ================= 출석 현황 (달력 표) ================= */
@@ -217,13 +218,13 @@
     el.innerHTML = `
       <div class="toolbar">
         <label class="field" style="flex:none">달<input type="month" id="am" value="${attMonth}"></label>
-        <span class="grow"></span><button class="btn" id="attCsv">⬇ 엑셀(CSV)로 받기</button>
+        <span class="grow"></span><button class="btn" id="attCsv">${I('download')}엑셀(CSV)로 받기</button>
       </div>
       ${list.length ? `<div class="table-wrap"><table class="tbl grid-att"><thead><tr><th>이름</th>
         ${Array.from({ length: days }, (_, i) => `<th class="d ${[0, 6].includes(dow(i + 1)) ? 'we' : ''}">${i + 1}</th>`).join('')}<th>합계</th></tr></thead><tbody>
-        ${list.map(s => `<tr><td><b>${esc(s.name)}</b></td>${Array.from({ length: days }, (_, i) => { const t = (D.data.att[dk(i + 1)] || {})[s.id]; return `<td class="d ${t ? 'on' : ''}" title="${t || ''}">${t ? '●' : ''}</td>`; }).join('')}<td><b>${D.monthCount(s.id, attMonth)}</b></td></tr>`).join('')}
+        ${list.map(s => `<tr><td><b>${esc(s.name)}</b></td>${Array.from({ length: days }, (_, i) => { const t = (D.data.att[dk(i + 1)] || {})[s.id]; return `<td class="d ${t ? 'on' : ''}" title="${t || ''}"></td>`; }).join('')}<td><b>${D.monthCount(s.id, attMonth)}</b></td></tr>`).join('')}
         <tr><td class="muted">하루 인원</td>${total.map(n => `<td class="d muted">${n || ''}</td>`).join('')}<td></td></tr>
-      </tbody></table></div>` : `<div class="box empty"><b>📅</b>출석 기록이 없어요.</div>`}`;
+      </tbody></table></div>` : `<div class="box empty"><div>${I('calendar-days', 'xl')}</div>출석 기록이 없습니다.</div>`}`;
     $('am').onchange = e => { attMonth = e.target.value || D.ym(); RENDER.att(); };
     $('attCsv').onclick = () => D.download(`출석_${attMonth}.csv`, D.csv([['이름'].concat(Array.from({ length: days }, (_, i) => i + 1), ['합계'])]
       .concat(list.map(s => [s.name].concat(Array.from({ length: days }, (_, i) => (D.data.att[dk(i + 1)] || {})[s.id] || ''), [D.monthCount(s.id, attMonth)])))), 'text/csv');
@@ -241,25 +242,25 @@
         </div>
       </div>
       <div class="box">
-        <div class="toolbar"><h2 class="grow" style="font-size:1.4rem">반</h2><button class="btn primary" id="cAdd">+ 반 추가</button></div>
+        <div class="toolbar"><h2 class="grow" style="font-size:1.4rem">반</h2><button class="btn primary" id="cAdd">${I('plus')}반 추가</button></div>
         <div id="cList">${d.classes.map(c => `<div class="cls-row" data-id="${c.id}">
           <input class="n" value="${esc(c.name)}" aria-label="반 이름"><input class="t" type="time" value="${esc(c.time || '')}" aria-label="시작 시간">
           <span class="pill">${D.students().filter(s => s.cls === c.id).length}명</span><button class="btn sm danger" data-del>삭제</button></div>`).join('') || '<p class="muted">반이 없어요. 예: ‘1부 (오후 2시)’, ‘유치부’</p>'}</div>
       </div>
       <div class="box" style="display:grid;gap:10px">
         <h2 style="font-size:1.4rem">백업 · 옮기기</h2>
-        <p class="hint">지금은 모든 기록이 <b>이 기기 브라우저에만</b> 저장돼요. 브라우저 기록을 지우면 사라지니 가끔 백업 파일을 받아 두세요. 다른 기기로 옮길 때도 이 파일을 쓰면 돼요.</p>
-        <div class="row"><button class="btn primary" id="sBak">⬇ 백업 파일 받기</button>
-          <label class="btn">⬆ 백업 파일로 되돌리기<input type="file" id="sRes" accept=".json,application/json" hidden></label>
-          <button class="btn" id="sCsv">⬇ 명단 엑셀(CSV)</button></div>
+        <p class="hint">모든 기록은 <b>이 기기의 브라우저에만</b> 저장됩니다. 브라우저 데이터를 지우면 함께 사라지므로 백업 파일을 주기적으로 받아 두세요. 다른 기기로 옮길 때도 이 파일을 사용합니다.</p>
+        <div class="row"><button class="btn primary" id="sBak">${I('download')}백업 파일 받기</button>
+          <label class="btn">${I('upload')}백업 파일로 되돌리기<input type="file" id="sRes" accept=".json,application/json" hidden></label>
+          <button class="btn" id="sCsv">${I('download')}명단 엑셀(CSV)</button></div>
       </div>
       <div class="box danger-zone" style="display:grid;gap:10px">
         <h2 style="font-size:1.4rem;color:var(--red)">모든 데이터 지우기</h2>
         <p class="hint">원생·출석·회비·띠·차량 기록이 모두 지워져요. 되돌릴 수 없어요.</p>
         <div><button class="btn danger" id="sWipe">모두 지우기</button></div>
       </div>`;
-    $('sDojo').onchange = e => { d.dojo = e.target.value.trim(); D.save(); K.toast('저장했어요'); };
-    $('sFee').onchange = e => { d.defaultFee = Number(e.target.value) || 0; D.save(); K.toast('저장했어요'); };
+    $('sDojo').onchange = e => { d.dojo = e.target.value.trim(); D.save(); K.toast('저장했습니다'); };
+    $('sFee').onchange = e => { d.defaultFee = Number(e.target.value) || 0; D.save(); K.toast('저장했습니다'); };
     $('cAdd').onclick = () => { d.classes.push({ id: D.uid(), name: `${d.classes.length + 1}부`, time: '' }); D.save(); };
     el.querySelectorAll('.cls-row').forEach(r => {
       const c = d.classes.find(x => x.id === r.dataset.id);
@@ -274,13 +275,13 @@
     $('sRes').onchange = async e => {
       const f = e.target.files[0]; if (!f) return;
       if (!(await K.confirm('지금 데이터를 백업 파일 내용으로 바꿀까요?', '되돌리기'))) return;
-      try { D.importJSON(await f.text()); K.toast('되돌렸어요'); } catch (err) { K.toast('읽을 수 없는 파일이에요: ' + err.message, 3000); }
+      try { D.importJSON(await f.text()); K.toast('복원했습니다'); } catch (err) { K.toast('읽을 수 없는 파일입니다: ' + err.message, 3000); }
     };
     $('sCsv').onclick = () => D.download(`원생명단_${D.day()}.csv`, D.csv([['이름', '출석번호', '반', '띠', '생년월일', '보호자', '연락처', '등록일', '상태', '메모']]
       .concat(D.students(true).map(s => [s.name, s.pin, D.className(s.cls), s.belt, s.birth, s.parent, s.phone, s.joined, s.active === false ? '퇴원' : '재원', s.memo]))), 'text/csv');
     $('sWipe').onclick = async () => {
       if (!(await K.confirm('정말 모든 데이터를 지울까요? 먼저 백업 파일을 받아 두는 걸 추천해요.', '모두 지우기'))) return;
-      D.importJSON(JSON.stringify({ students: [] })); K.toast('모두 지웠어요');
+      D.importJSON(JSON.stringify({ students: [] })); K.toast('모든 데이터를 삭제했습니다');
     };
   };
 
