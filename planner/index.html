@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>월간 계획표 · 기합</title>
+<meta name="theme-color" content="#16213a">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="../shared/base.css">
+<script src="../shared/core.js"></script>
+<script src="../shared/db.js"></script>
+<style>
+  .sheet {
+    --p1: #16213a; --p2: #d8323c; --pbg: #ffffff; --pcell: #faf8f3; --pink: #16213a; --pline: #e3ddd0;
+    background: var(--pbg); color: var(--pink); border-radius: 20px; padding: clamp(14px, 3vw, 28px);
+    box-shadow: var(--shadow); display: grid; gap: 14px; min-width: 760px;
+  }
+  .sheet[data-theme="spring"] { --p1: #2e7d4f; --p2: #f08a24; --pbg: #fffdf5; --pcell: #f3f9ee; --pink: #23402e; --pline: #d7e8cf; }
+  .sheet[data-theme="ocean"] { --p1: #1d4ed8; --p2: #0ea5a5; --pbg: #f7fbff; --pcell: #eef5ff; --pink: #13294b; --pline: #d3e2f7; }
+  .sheet[data-theme="candy"] { --p1: #be185d; --p2: #7c3aed; --pbg: #fff8fb; --pcell: #fdeef5; --pink: #4a1631; --pline: #f3d3e2; }
+  .sheet-wrap { overflow-x: auto; padding-bottom: 6px; }
+  .sh-head { display: flex; align-items: flex-end; gap: 16px; border-bottom: 4px solid var(--p1); padding-bottom: 10px; }
+  .sh-month { font-family: 'Jua', var(--f-display); font-size: 4rem; line-height: .9; color: var(--p2); }
+  .sh-title { flex: 1; font-family: 'Jua', var(--f-display); font-size: 2rem; outline: none; color: var(--p1); }
+  .sh-dojo { font-weight: 700; color: var(--p1); opacity: .8; outline: none; }
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .dow { text-align: center; font-weight: 900; padding: 6px 0; border-radius: 8px; background: var(--p1); color: #fff; }
+  .dow.sun { background: var(--p2); }
+  .day { min-height: 108px; border-radius: 10px; background: var(--pcell); border: 1px solid var(--pline); padding: 6px; display: grid; grid-template-rows: auto 1fr; gap: 3px; }
+  .day.out { background: transparent; border-style: dashed; opacity: .35; }
+  .day.today { box-shadow: inset 0 0 0 3px var(--p2); }
+  .day-top { display: flex; align-items: center; gap: 4px; }
+  .day-num { font-weight: 900; font-size: 1.05rem; }
+  .day.sun .day-num, .day.hol .day-num { color: var(--p2); }
+  .day.sat .day-num { color: #2457c5; }
+  .tag { margin-left: auto; border: 0; border-radius: 6px; font-size: .72rem; font-weight: 900; padding: 1px 6px; cursor: pointer; background: transparent; color: var(--pink); opacity: .35; }
+  .tag.set { opacity: 1; color: #fff; }
+  .day-txt { outline: none; font-size: .88rem; line-height: 1.35; white-space: pre-wrap; word-break: keep-all; min-height: 3em; }
+  .day-txt:focus { background: rgba(255, 255, 255, .7); border-radius: 6px; }
+  .sh-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .note { border: 2px solid var(--pline); border-radius: 12px; padding: 10px 12px; background: var(--pcell); }
+  .note h3 { font-family: 'Jua', var(--f-display); color: var(--p1); font-size: 1.2rem; margin-bottom: 4px; }
+  .note div { outline: none; min-height: 3.5em; white-space: pre-wrap; font-size: .95rem; }
+  .legend { display: flex; gap: 8px; flex-wrap: wrap; font-size: .8rem; font-weight: 700; }
+  .legend span { padding: 1px 8px; border-radius: 6px; color: #fff; }
+  .exporting .tag:not(.set) { visibility: hidden; }
+  .exporting .day-txt:focus { background: none; }
+  @media print {
+    @page { size: A4 landscape; margin: 8mm; }
+    .page > *:not(.sheet-wrap) { display: none !important; }
+    .sheet { box-shadow: none; min-width: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .tag:not(.set) { visibility: hidden; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="toolbar no-print">
+    <button class="btn icon" id="prev" aria-label="이전 달">‹</button>
+    <input type="month" id="month" class="search" style="width:auto">
+    <button class="btn icon" id="next" aria-label="다음 달">›</button>
+    <div class="chips grow" id="themes"></div>
+    <button class="btn" id="copyPrev">지난달 내용 복사</button>
+    <button class="btn" id="print">🖨 인쇄</button>
+    <button class="btn primary" id="png">🖼 이미지로 저장</button>
+  </div>
+  <p class="hint no-print">칸을 눌러 바로 쓰세요. 날짜 옆 작은 글씨를 누르면 ‘심사·행사·휴관·대회’ 표시가 바뀌어요. 자동 저장돼요.</p>
+  <div class="sheet-wrap"><div class="sheet" id="sheet"></div></div>
+</main>
+<script src="planner.js"></script>
+</body>
+</html>

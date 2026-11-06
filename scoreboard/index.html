@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>스코어보드 · 기합</title>
+<meta name="theme-color" content="#16213a">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="../shared/base.css">
+<script src="../shared/core.js"></script>
+<style>
+  :root { --chung: #1f5fd6; --hong: #d8323c; }
+  .board {
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; min-height: min(78vh, 760px);
+    border-radius: 24px; overflow: hidden; box-shadow: var(--shadow); background: #0b1020; color: #fff;
+  }
+  .board-wrap:fullscreen .board { border-radius: 0; min-height: 100vh; }
+  .side { display: grid; grid-template-rows: auto 1fr auto auto; gap: 10px; padding: clamp(12px, 2vw, 22px); text-align: center; position: relative; }
+  .side.b { background: linear-gradient(160deg, #2a6cf0, #163f96); }
+  .side.r { background: linear-gradient(200deg, #e8444d, #9c1a22); }
+  .side .tag { font-family: var(--f-display); font-size: clamp(1.2rem, 2.6vw, 2rem); opacity: .9; }
+  .side input.name {
+    width: 100%; background: rgba(0, 0, 0, .18); border: 2px solid rgba(255, 255, 255, .25); color: #fff; border-radius: 12px;
+    font-family: var(--f-display); font-size: clamp(1.3rem, 3vw, 2.4rem); text-align: center; padding: .15em .4em; min-height: 52px;
+  }
+  .side input.name:focus { outline: 3px solid #fff; }
+  .score { font-family: var(--f-display); font-size: clamp(7rem, 22vw, 20rem); line-height: .9; display: grid; place-items: center; font-variant-numeric: tabular-nums; text-shadow: 0 6px 0 rgba(0, 0, 0, .2); }
+  .board-wrap:fullscreen .board .score { font-size: min(30vw, 46vh); }
+  .score.bump { animation: bump .25s; }
+  @keyframes bump { 50% { transform: scale(1.12); } }
+  .meta { display: flex; justify-content: center; gap: 14px; align-items: center; font-weight: 900; flex-wrap: wrap; }
+  .wins { display: flex; gap: 6px; }
+  .wins i { width: 22px; height: 22px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, .7); }
+  .wins i.on { background: #ffd23f; border-color: #ffd23f; }
+  .gam { padding: .15em .7em; border-radius: 999px; background: rgba(0, 0, 0, .25); }
+  .pads { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .pads button {
+    min-height: 56px; border-radius: 14px; border: 2px solid rgba(255, 255, 255, .35); background: rgba(255, 255, 255, .14); color: #fff;
+    font-family: var(--f-display); font-size: 1.6rem; cursor: pointer;
+  }
+  .pads button:active { transform: scale(.95); background: rgba(255, 255, 255, .3); }
+  .pads button.minus, .pads button.gamb { font-family: var(--f-body); font-size: 1rem; font-weight: 900; }
+  .pads button.gamb { background: rgba(0, 0, 0, .3); }
+  .board-wrap:fullscreen .board .pads { display: none; }
+
+  .mid { background: #0b1020; display: grid; align-content: center; justify-items: center; gap: 10px; padding: 16px clamp(10px, 2vw, 24px); min-width: clamp(170px, 22vw, 320px); }
+  .round-lbl { font-family: var(--f-display); font-size: clamp(1.3rem, 3vw, 2.4rem); }
+  .phase { font-weight: 900; padding: .2em .9em; border-radius: 999px; background: #222c4a; font-size: .95rem; }
+  .phase[data-p="fight"] { background: #18995a; }
+  .phase[data-p="rest"] { background: #e8a500; color: #1b1300; }
+  .phase[data-p="done"] { background: #ffd23f; color: #1b1300; }
+  .clock { font-family: var(--f-display); font-size: clamp(3.2rem, 9vw, 7.5rem); line-height: 1; font-variant-numeric: tabular-nums; }
+  .board-wrap:fullscreen .board .clock { font-size: min(14vw, 20vh); }
+  .clock.warn { color: #ffd23f; }
+  .clock.rest { color: #ffd23f; }
+  .hist { font-size: .85rem; color: #a3abc2; text-align: center; line-height: 1.6; }
+  .winner {
+    position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 10px; text-align: center;
+    background: rgba(5, 8, 20, .82); color: #fff; z-index: 5; font-family: var(--f-display); animation: fade .4s;
+  }
+  .winner b { font-size: clamp(3rem, 10vw, 8rem); line-height: 1; }
+  .winner span { font-size: clamp(1.2rem, 3vw, 2rem); opacity: .85; }
+  @keyframes fade { from { opacity: 0; } }
+  .board-wrap { position: relative; }
+
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; }
+  .controls .big { flex: 1 1 150px; }
+  .keys { display: grid; gap: 4px 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); font-size: .88rem; color: var(--muted); }
+  kbd { display: inline-block; min-width: 1.7em; text-align: center; padding: 0 .35em; border-radius: 6px; border: 1px solid var(--line); background: var(--bg-3); font-family: inherit; font-weight: 700; color: var(--ink); }
+
+  @media (max-width: 760px) {
+    .board { grid-template-columns: 1fr 1fr; }
+    .mid { grid-column: 1 / -1; grid-row: 1; min-width: 0; grid-auto-flow: column; justify-content: center; align-items: center; }
+    .hist { display: none; }
+    .pads { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="board-wrap">
+    <div class="board" id="board">
+      <section class="side b" aria-label="청">
+        <div class="tag">청 · BLUE</div>
+        <div class="score" id="sB" aria-live="polite">0</div>
+        <input class="name" id="nB" value="청" aria-label="청 선수 이름" maxlength="20">
+        <div class="meta"><div class="wins" id="wB"><i></i><i></i></div><span class="gam" id="gB">감점 0</span></div>
+        <div class="pads" data-side="b"></div>
+      </section>
+      <section class="mid">
+        <div class="round-lbl" id="roundLbl">1 라운드</div>
+        <div class="phase" id="phase" data-p="ready">준비</div>
+        <div class="clock" id="clock">2:00</div>
+        <div class="hist" id="hist"></div>
+      </section>
+      <section class="side r" aria-label="홍">
+        <div class="tag">홍 · RED</div>
+        <div class="score" id="sR" aria-live="polite">0</div>
+        <input class="name" id="nR" value="홍" aria-label="홍 선수 이름" maxlength="20">
+        <div class="meta"><div class="wins" id="wR"><i></i><i></i></div><span class="gam" id="gR">감점 0</span></div>
+        <div class="pads" data-side="r"></div>
+      </section>
+    </div>
+    <div class="winner" id="winner" hidden></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn primary big" id="go">▶ 시작</button>
+    <button class="btn big" id="endRound">라운드 끝내기</button>
+    <button class="btn big" id="undo">↶ 되돌리기</button>
+    <button class="btn" id="settings">⚙️ 시간 설정</button>
+    <button class="btn danger" id="reset">경기 새로 시작</button>
+  </div>
+
+  <div class="box keys">
+    <div><b>청</b> <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd><kbd>T</kbd> = +1~+5 · <kbd>A</kbd> −1 · <kbd>Z</kbd> 감점</div>
+    <div><b>홍</b> <kbd>Y</kbd><kbd>U</kbd><kbd>I</kbd><kbd>O</kbd><kbd>P</kbd> = +1~+5 · <kbd>L</kbd> −1 · <kbd>M</kbd> 감점</div>
+    <div><kbd>Space</kbd> 시작/멈춤 · <kbd>Backspace</kbd> 되돌리기 · <kbd>F</kbd> 전체 화면</div>
+    <div>감점 1개 = 상대에게 +1점. 라운드마다 점수·감점은 0부터, 먼저 2라운드를 이기면 승리.</div>
+  </div>
+</main>
+<script src="scoreboard.js"></script>
+</body>
+</html>

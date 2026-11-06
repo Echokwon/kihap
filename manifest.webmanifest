@@ -1,0 +1,15 @@
+{
+  "name": "기합 — 도장 수업 도구",
+  "short_name": "기합",
+  "description": "태권도장 수업 도구 · 운영 · 게임 · 대회를 한 곳에서",
+  "lang": "ko",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f1ea",
+  "theme_color": "#16213a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

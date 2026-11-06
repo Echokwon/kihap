@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>몸으로 말해요 · 기합</title>
+<meta name="theme-color" content="#16213a">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="../shared/base.css">
+<script src="../shared/core.js"></script>
+<style>
+  .setup { display: grid; gap: 14px; max-width: 760px; }
+  .stage { display: grid; gap: 14px; justify-items: center; text-align: center; padding: 22px 16px; border-radius: 24px; background: var(--bg-2); border: 1px solid var(--line); min-height: 60vh; align-content: center; }
+  .stage:fullscreen { border-radius: 0; }
+  .turn { font-family: var(--f-display); font-size: clamp(1.6rem, 4vw, 2.6rem); }
+  .turn b { color: var(--tc); }
+  .word { font-family: var(--f-display); font-size: clamp(3rem, 13vw, 9rem); line-height: 1.1; word-break: keep-all; padding: .2em .4em; border-radius: 20px; background: var(--bg); border: 4px solid var(--tc); min-width: min(90%, 600px); }
+  .word.hide { color: transparent; text-shadow: 0 0 28px rgba(128,128,128,.9); user-select: none; }
+  .word.hit { animation: pop .35s; }
+  @keyframes pop { 0% { transform: scale(.8); } 70% { transform: scale(1.05); } 100% { transform: scale(1); } }
+  .cat { font-weight: 900; color: var(--muted); }
+  .clock { font-family: var(--f-display); font-size: clamp(3rem, 9vw, 5.5rem); line-height: 1; font-variant-numeric: tabular-nums; }
+  .clock.low { color: var(--red); animation: pulse .5s infinite alternate; }
+  @keyframes pulse { to { transform: scale(1.08); } }
+  .act { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: min(100%, 640px); }
+  .act .btn { flex: 1 1 160px; min-height: 76px; font-size: 1.5rem; }
+  .act .ok { background: var(--green); border-color: var(--green); color: #fff; }
+  .board { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .board div { padding: 8px 16px; border-radius: 14px; background: var(--tc); color: #fff; font-weight: 900; font-size: 1.1rem; }
+  .board div b { font-family: var(--f-display); font-size: 1.6rem; margin-left: 6px; }
+  .board div.now { outline: 4px solid var(--ink); outline-offset: 2px; }
+  .log { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 700px; }
+  .log span { padding: .2em .7em; border-radius: 999px; font-weight: 700; }
+  .log .o { background: color-mix(in srgb, var(--green) 20%, transparent); color: var(--green); }
+  .log .x { background: var(--bg-3); color: var(--muted); text-decoration: line-through; }
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="box setup" id="setup">
+    <h2 style="font-size:1.8rem">🎭 몸으로 말해요</h2>
+    <p class="hint" style="font-size:1rem">한 명이 제시어를 몸으로 표현하고, 같은 팀이 맞혀요. 말하면 안 돼요! 시간 안에 많이 맞힌 팀이 이겨요.</p>
+    <div class="field">주제 고르기<div class="chips" id="cats"></div></div>
+    <label class="field">내가 만든 제시어 (쉼표나 줄바꿈으로 구분 · ‘우리 주제’로 들어가요)<textarea id="custom" class="search" style="min-height:90px;padding:.7em" placeholder="관장님, 띠 매기, 줄넘기 2단 뛰기"></textarea></label>
+    <div class="grid2">
+      <label class="field">팀 수<select id="nt"><option>2</option><option>3</option><option>4</option></select></label>
+      <label class="field">한 차례 시간 (초)<input id="secs" type="number" min="15" max="300" value="60" inputmode="numeric"></label>
+      <label class="field">팀마다 차례 수<input id="rounds" type="number" min="1" max="10" value="2" inputmode="numeric"></label>
+      <label class="field">패스 횟수 (차례마다)<input id="passes" type="number" min="0" max="10" value="2" inputmode="numeric"></label>
+    </div>
+    <label class="check"><input type="checkbox" id="hide"> 제시어 가리기 (화면을 누르고 있는 동안만 보여요 — 맞히는 친구들이 TV를 볼 때)</label>
+    <button class="btn primary big" id="start">게임 시작!</button>
+  </section>
+
+  <section id="play" hidden>
+    <div class="toolbar" style="margin-bottom:12px"><button class="btn" id="back">⚙️ 설정으로</button><span class="grow"></span><button class="btn" id="fs">⛶ 전체 화면</button></div>
+    <div class="stage" id="stage"></div>
+  </section>
+</main>
+<script>
+(function () {
+  const K = Kihap, $ = id => document.getElementById(id), esc = K.esc;
+  K.topbar('🎭 몸으로 말해요');
+  K.markLast('charades', '몸으로 말해요');
+
+  const WORDS = {
+    '동물': '강아지 고양이 토끼 코끼리 기린 원숭이 펭귄 캥거루 뱀 악어 독수리 개구리 사자 곰 오리 문어 거북이 닭 말 돌고래',
+    '태권도': '앞차기 돌려차기 옆차기 뒤차기 지르기 아래막기 얼굴막기 몸통막기 기합 품새 격파 앞굽이 기마서기 인사 띠 매기 겨루기 준비 자세 뛰어차기 손날치기 낙법',
+    '운동·스포츠': '축구 농구 야구 수영 줄넘기 스키 볼링 탁구 배드민턴 골프 권투 양궁 스케이트 자전거 역도 체조 서핑 등산 줄다리기 훌라후프',
+    '직업': '소방관 경찰관 의사 요리사 선생님 가수 화가 우체부 미용사 운전기사 농부 비행기 조종사 마술사 사진가 청소부 발레리나 축구 선수 과학자 택배 기사 경비원',
+    '일상 행동': '양치하기 세수하기 머리 감기 밥 먹기 라면 먹기 잠자기 기지개 켜기 신발 신기 옷 입기 우산 쓰기 전화하기 사진 찍기 설거지 빨래 널기 청소기 돌리기 문 열기 책 읽기 게임하기 하품하기 재채기',
+    '탈것': '자동차 버스 기차 비행기 헬리콥터 배 잠수함 오토바이 자전거 로켓 소방차 구급차 트럭 킥보드 엘리베이터 롤러코스터 썰매 말 타기 스케이트보드 열기구'
+  };
+  // 띄어쓰기로 나누되, 두 단어짜리는 위에서 붙어 있으므로 아래에서 다시 합침
+  const MULTI = ['띠 매기', '준비 자세', '축구 선수', '비행기 조종사', '택배 기사', '머리 감기', '밥 먹기', '라면 먹기', '기지개 켜기', '신발 신기', '옷 입기', '우산 쓰기', '사진 찍기', '빨래 널기', '청소기 돌리기', '문 열기', '책 읽기', '말 타기'];
+  function split(s) {
+    let parts = s.split(' '), out = [];
+    for (let i = 0; i < parts.length; i++) {
+      const two = parts[i] + ' ' + parts[i + 1], three = two + ' ' + parts[i + 2];
+      if (MULTI.includes(three)) { out.push(three); i += 2; } else if (MULTI.includes(two)) { out.push(two); i++; } else out.push(parts[i]);
+    }
+    return out;
+  }
+  const COLORS = ['#d8323c', '#2457c5', '#18995a', '#e8a500'];
+  const cfg = K.get('cha:cfg', { cats: ['동물', '태권도'], custom: '', nt: 2, secs: 60, rounds: 2, passes: 2, hide: false });
+  $('cats').innerHTML = Object.keys(WORDS).concat('우리 주제').map(c => `<button class="chip ${cfg.cats.includes(c) ? 'on' : ''}">${c}</button>`).join('');
+  $('cats').onclick = e => { const c = e.target.closest('.chip'); if (c) c.classList.toggle('on'); };
+  $('custom').value = cfg.custom; $('nt').value = cfg.nt; $('secs').value = cfg.secs; $('rounds').value = cfg.rounds; $('passes').value = cfg.passes; $('hide').checked = cfg.hide;
+
+  let G = null, timer = null;
+  const num = (id, a, b, d) => { let v = Math.round(Number($(id).value)); if (!isFinite(v)) v = d; return Math.min(b, Math.max(a, v)); };
+
+  $('start').onclick = () => {
+    const cats = [...document.querySelectorAll('#cats .chip.on')].map(c => c.textContent);
+    const customWords = $('custom').value.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+    let pool = [];
+    cats.forEach(c => { if (c === '우리 주제') customWords.forEach(w => pool.push([w, c])); else split(WORDS[c]).forEach(w => pool.push([w, c])); });
+    if (!pool.length) { K.toast('주제를 하나 이상 골라 주세요'); return; }
+    Object.assign(cfg, { cats, custom: $('custom').value, nt: +$('nt').value, secs: num('secs', 15, 300, 60), rounds: num('rounds', 1, 10, 2), passes: num('passes', 0, 10, 2), hide: $('hide').checked });
+    K.set('cha:cfg', cfg);
+    G = { pool: K.shuffle(pool), idx: 0, team: 0, turn: 0, phase: 'ready',
+      teams: Array.from({ length: cfg.nt }, (_, i) => ({ name: (i + 1) + '팀', color: COLORS[i], score: 0 })) };
+    $('setup').hidden = true; $('play').hidden = false; render();
+  };
+  $('back').onclick = () => { clearInterval(timer); $('play').hidden = true; $('setup').hidden = false; };
+  $('fs').onclick = () => K.fullscreen($('stage'));
+
+  const word = () => { if (G.idx >= G.pool.length) { G.pool = K.shuffle(G.pool); G.idx = 0; } return G.pool[G.idx]; };
+  const board = () => `<div class="board">${G.teams.map((t, i) => `<div style="--tc:${t.color}" class="${i === G.team && G.phase !== 'end' ? 'now' : ''}">${t.name}<b>${t.score}</b></div>`).join('')}</div>`;
+
+  function render() {
+    const t = G.teams[G.team], st = $('stage'); st.style.setProperty('--tc', t.color);
+    if (G.phase === 'ready') {
+      st.innerHTML = `${board()}<div class="turn"><b>${t.name}</b> 차례! (${Math.floor(G.turn / G.teams.length) + 1} / ${cfg.rounds}번째)</div>
+        <p class="hint" style="font-size:1.1rem">표현할 친구 한 명이 나와요. 준비되면 시작!</p>
+        <button class="btn primary big" data-a="go">▶ ${cfg.secs}초 시작</button>`;
+    } else if (G.phase === 'play') {
+      const [w, c] = word();
+      st.innerHTML = `${board()}<div class="clock ${G.left <= 10 ? 'low' : ''}">${G.left}</div>
+        <div class="cat">주제: ${esc(c)}</div>
+        <div class="word ${cfg.hide ? 'hide' : ''}" id="word">${esc(w)}</div>
+        ${cfg.hide ? '<p class="hint">제시어를 누르고 있으면 보여요</p>' : ''}
+        <div class="act"><button class="btn ok" data-a="ok">⭕ 맞혔어요!</button><button class="btn" data-a="pass" ${G.passLeft ? '' : 'disabled'}>⏭ 패스 (${G.passLeft})</button></div>
+        <div class="log">${G.log.map(([w, o]) => `<span class="${o ? 'o' : 'x'}">${esc(w)}</span>`).join('')}</div>`;
+      const wd = $('word');
+      if (cfg.hide) { const sh = v => wd.classList.toggle('hide', !v); wd.onpointerdown = () => sh(1); wd.onpointerup = wd.onpointerleave = wd.onpointercancel = () => sh(0); }
+    } else if (G.phase === 'after') {
+      const n = G.log.filter(x => x[1]).length;
+      st.innerHTML = `${board()}<div class="turn">⏰ 시간 끝! <b>${t.name}</b> ${n}개 맞혔어요</div>
+        <div class="log">${G.log.map(([w, o]) => `<span class="${o ? 'o' : 'x'}">${esc(w)}</span>`).join('') || '<span class="x">없음</span>'}</div>
+        <button class="btn primary big" data-a="next">${G.turn + 1 >= G.teams.length * cfg.rounds ? '🏆 결과 보기' : '다음 팀 →'}</button>`;
+    } else {
+      const max = Math.max(...G.teams.map(t => t.score)), win = G.teams.filter(t => t.score === max);
+      st.style.setProperty('--tc', win[0].color);
+      st.innerHTML = `<div style="font-size:5rem">🏆</div><div class="word">${win.length > 1 ? '무승부!' : win[0].name + ' 승리!'}</div>${board()}
+        <button class="btn primary big" data-a="again">다시 하기</button>`;
+    }
+  }
+
+  $('stage').addEventListener('click', e => {
+    const b = e.target.closest('[data-a]'); if (!b) return;
+    const a = b.dataset.a;
+    if (a === 'go') {
+      G.phase = 'play'; G.left = cfg.secs; G.passLeft = cfg.passes; G.log = [];
+      K.sound.whistle(); K._wantAwake = true; K.keepAwake(true);
+      clearInterval(timer); timer = setInterval(() => {
+        G.left--; if (G.left <= 5 && G.left > 0) K.sound.beep();
+        if (G.left <= 0) { clearInterval(timer); G.phase = 'after'; K.sound.end(); render(); return; }
+        const c = document.querySelector('.clock'); if (c) { c.textContent = G.left; c.classList.toggle('low', G.left <= 10); }
+      }, 1000);
+    } else if (a === 'ok') { G.log.push([word()[0], 1]); G.teams[G.team].score++; G.idx++; K.sound.fanfare(); }
+    else if (a === 'pass') { G.log.push([word()[0], 0]); G.passLeft--; G.idx++; K.sound.tick(); }
+    else if (a === 'next') {
+      G.turn++;
+      if (G.turn >= G.teams.length * cfg.rounds) { G.phase = 'end'; K.sound.fanfare(); }
+      else { G.team = G.turn % G.teams.length; G.phase = 'ready'; }
+    } else if (a === 'again') { $('start').click(); return; }
+    render();
+    if (a === 'ok') { const w = $('word'); w && w.classList.add('hit'); }
+  });
+})();
+</script>
+</body>
+</html>

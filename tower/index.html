@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>탑 오르기 · 기합</title>
+<meta name="theme-color" content="#16213a">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="../shared/base.css">
+<script src="../shared/core.js"></script>
+<style>
+  .setup { display: grid; gap: 14px; max-width: 720px; }
+  .arena { display: grid; gap: 16px; }
+  .arena.two { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 760px) { .arena.two { grid-template-columns: 1fr; } }
+  .side { display: grid; grid-template-columns: minmax(90px, 160px) 1fr; gap: 14px; align-items: stretch; padding: 14px; border-radius: 22px; background: var(--bg-2); border: 1px solid var(--line); }
+  .side h2 { grid-column: 1 / -1; font-size: 1.8rem; display: flex; gap: .5rem; align-items: center; }
+  .side h2 .fl { margin-left: auto; font-size: 1.1rem; color: var(--muted); }
+
+  .tower { display: flex; flex-direction: column-reverse; gap: 3px; padding: 6px; border-radius: 12px 12px 4px 4px; background: linear-gradient(var(--bg-3), var(--bg)); min-height: 360px; position: relative; }
+  .floor { flex: 1; min-height: 14px; border-radius: 5px; background: var(--line); display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 900; color: var(--muted); transition: background .3s; position: relative; }
+  .floor.boss { background: color-mix(in srgb, var(--yellow) 40%, var(--line)); }
+  .floor.done { background: var(--tc); color: #fff; }
+  .floor.top::after { content: '👑'; position: absolute; top: -1.4em; font-size: 1.2rem; }
+  .floor.here { outline: 3px solid var(--ink); outline-offset: 1px; }
+  .floor.here::before { content: '🧗'; position: absolute; left: -4px; font-size: 1.3rem; animation: bob 1s infinite alternate; }
+  @keyframes bob { to { transform: translateY(-4px); } }
+
+  .mission { display: grid; gap: 12px; align-content: center; text-align: center; padding: 12px; }
+  .m-tag { justify-self: center; font-weight: 900; padding: .2em .9em; border-radius: 999px; background: var(--bg-3); }
+  .m-tag.boss { background: var(--yellow); color: #1b1300; animation: pulse .8s infinite alternate; }
+  @keyframes pulse { to { transform: scale(1.08); } }
+  .m-ic { font-size: clamp(3rem, 9vw, 6rem); line-height: 1; }
+  .m-text { font-family: var(--f-display); font-size: clamp(2rem, 5.5vw, 3.6rem); line-height: 1.15; word-break: keep-all; }
+  .m-timer { font-family: var(--f-display); font-size: 2.4rem; color: var(--red); min-height: 1.2em; }
+  .m-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .m-btns .ok { flex: 1 1 100%; min-height: 72px; font-size: 1.5rem; }
+  .side.win { box-shadow: 0 0 0 4px var(--tc); }
+  .side.win .mission { animation: pop .5s; }
+  @keyframes pop { 0% { transform: scale(.7); } 70% { transform: scale(1.06); } 100% { transform: scale(1); } }
+
+  .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 90; }
+  .confetti i { position: absolute; top: -20px; width: 10px; height: 16px; border-radius: 2px; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+  .arena:fullscreen { background: var(--bg); padding: 20px; overflow: auto; }
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="box setup" id="setup">
+    <h2 style="font-size:1.8rem">🗼 탑 오르기</h2>
+    <p class="hint" style="font-size:1rem">층마다 나오는 운동 미션을 성공하면 한 층씩 올라가요. 5층마다 보스 미션! 꼭대기에 먼저 오르면 승리.</p>
+    <div class="field">방식<div class="chips" id="sMode"><button class="chip on" data-v="1">반 전체 (탑 1개)</button><button class="chip" data-v="2">팀 대결 (탑 2개)</button></div></div>
+    <div class="field">높이<div class="chips" id="sFloors"><button class="chip" data-v="5">5층</button><button class="chip on" data-v="10">10층</button><button class="chip" data-v="15">15층</button><button class="chip" data-v="20">20층</button></div></div>
+    <div class="field">난이도<div class="chips" id="sLevel"><button class="chip" data-v="0.6">쉬움 (유치부)</button><button class="chip on" data-v="1">보통</button><button class="chip" data-v="1.5">어려움</button></div></div>
+    <div class="grid2"><label class="field">팀 1 이름<input id="sT1" value="청룡팀"></label><label class="field">팀 2 이름<input id="sT2" value="백호팀"></label></div>
+    <details><summary style="cursor:pointer;font-weight:700">미션 목록 고치기</summary>
+      <p class="hint">한 줄에 하나: <b>그림 | 운동 이름 | 기본 횟수 | 단위</b> (단위가 ‘초’면 타이머가 나와요)</p>
+      <textarea id="sMissions" class="search" style="min-height:220px;padding:.8em;line-height:1.6"></textarea>
+      <button class="btn sm" id="sDefault" style="margin-top:6px">기본 목록으로</button>
+    </details>
+    <button class="btn primary big" id="start">탑 오르기 시작!</button>
+  </section>
+
+  <section id="play" hidden>
+    <div class="toolbar no-print" style="margin-bottom:12px">
+      <button class="btn" id="back">⚙️ 설정으로</button><span class="grow"></span>
+      <button class="btn" id="fs">⛶ 전체 화면</button>
+    </div>
+    <div class="arena" id="arena"></div>
+  </section>
+</main>
+<script>
+(function () {
+  const K = Kihap, $ = id => document.getElementById(id), esc = K.esc;
+  K.topbar('🗼 탑 오르기');
+  K.markLast('tower', '탑 오르기');
+
+  const DEF = `🦵 | 스쿼트 | 15 | 회
+💪 | 팔굽혀펴기 | 10 | 회
+⭐ | 점핑잭 | 20 | 회
+🦶 | 앞차기 (양발) | 20 | 회
+🌀 | 돌려차기 (양발) | 16 | 회
+🐸 | 개구리 점프 | 8 | 회
+🪵 | 플랭크 | 20 | 초
+🏃 | 제자리 뛰기 | 20 | 초
+🦀 | 꽃게 걸음 왕복 | 2 | 번
+🧘 | 기마 자세 버티기 | 20 | 초
+🤸 | 버피 | 5 | 회
+🥋 | 지르기 (기합 크게!) | 20 | 회
+🐻 | 곰 걸음 왕복 | 2 | 번
+🦘 | 무릎 높이 뛰기 | 15 | 회`;
+  const BOSS = [['🐉', '버피 {a}회 + 점핑잭 {b}회', 6, 25], ['👹', '스쿼트 {a}회 + 앞차기 {b}회', 20, 20], ['🦖', '플랭크 {a}초 + 팔굽혀펴기 {b}회', 30, 10], ['🧌', '기마 자세 {a}초 + 지르기 {b}회', 30, 30]];
+  const COLORS = ['#2457c5', '#d8323c'];
+
+  const cfg = K.get('tower:cfg', { mode: 1, floors: 10, level: 1, t1: '청룡팀', t2: '백호팀', missions: DEF });
+  $('sMissions').value = cfg.missions || DEF;
+  $('sT1').value = cfg.t1; $('sT2').value = cfg.t2;
+  const pick = (id, v) => document.querySelectorAll(`#${id} .chip`).forEach(c => c.classList.toggle('on', c.dataset.v === String(v)));
+  pick('sMode', cfg.mode); pick('sFloors', cfg.floors); pick('sLevel', cfg.level);
+  ['sMode', 'sFloors', 'sLevel'].forEach(id => $(id).onclick = e => { const c = e.target.closest('.chip'); if (c) pick(id, c.dataset.v); });
+  $('sDefault').onclick = () => $('sMissions').value = DEF;
+  const val = id => document.querySelector(`#${id} .chip.on`).dataset.v;
+
+  let G = null;
+  const parse = () => $('sMissions').value.split('\n').map(l => l.split('|').map(s => s.trim())).filter(p => p[1])
+    .map(([ic, name, n, unit]) => ({ ic: ic || '💪', name, n: Number(n) || 10, unit: unit || '회' }));
+
+  function newMission(team) {
+    const f = team.floor + 1, isBoss = f % 5 === 0 || f === G.floors;
+    const L = G.level, r = n => Math.max(1, Math.round(n * L));
+    if (isBoss) {
+      const b = BOSS[K.randInt(0, BOSS.length - 1)];
+      return { boss: true, ic: b[0], text: b[1].replace('{a}', r(b[2])).replace('{b}', r(b[3])), secs: 0 };
+    }
+    let m; do { m = G.missions[K.randInt(0, G.missions.length - 1)]; } while (G.missions.length > 1 && team.last === m.name && Math.random() < .9);
+    team.last = m.name;
+    const n = r(m.n);
+    return { ic: m.ic, text: `${m.name} ${n}${m.unit}`, secs: m.unit === '초' ? n : 0 };
+  }
+
+  $('start').onclick = () => {
+    const missions = parse(); if (!missions.length) { K.toast('미션이 하나 이상 있어야 해요'); return; }
+    const mode = +val('sMode');
+    Object.assign(cfg, { mode, floors: +val('sFloors'), level: +val('sLevel'), t1: $('sT1').value.trim() || '청룡팀', t2: $('sT2').value.trim() || '백호팀', missions: $('sMissions').value });
+    K.set('tower:cfg', cfg);
+    G = { floors: cfg.floors, level: cfg.level, missions, over: false,
+      teams: (mode === 2 ? [cfg.t1, cfg.t2] : ['우리 반']).map((name, i) => ({ name, floor: 0, color: COLORS[i], m: null, timer: null, left: 0 })) };
+    G.teams.forEach(t => t.m = newMission(t));
+    $('setup').hidden = true; $('play').hidden = false; K._wantAwake = true; K.keepAwake(true);
+    render(); K.sound.whistle();
+  };
+  $('back').onclick = () => { if (G) G.teams.forEach(t => clearInterval(t.timer)); $('play').hidden = true; $('setup').hidden = false; };
+  $('fs').onclick = () => K.fullscreen($('arena'));
+
+  function render() {
+    $('arena').className = 'arena' + (G.teams.length === 2 ? ' two' : '');
+    $('arena').innerHTML = G.teams.map((t, i) => {
+      const floors = Array.from({ length: G.floors }, (_, k) => { const f = k + 1;
+        return `<div class="floor ${f % 5 === 0 || f === G.floors ? 'boss' : ''} ${f <= t.floor ? 'done' : ''} ${f === G.floors ? 'top' : ''} ${f === t.floor + 1 && !t.won ? 'here' : ''}">${f}</div>`; }).join('');
+      const m = t.m;
+      return `<div class="side ${t.won ? 'win' : ''}" style="--tc:${t.color}" data-i="${i}">
+        <h2><span style="color:${t.color}">●</span>${esc(t.name)}<span class="fl">${t.floor} / ${G.floors}층</span></h2>
+        <div class="tower">${floors}</div>
+        <div class="mission">${t.won ? `<div class="m-ic">🏆</div><div class="m-text">${esc(t.name)}<br>꼭대기 도착!</div><div class="m-btns"><button class="btn primary big" data-a="again">다시 하기</button></div>` : `
+          <span class="m-tag ${m.boss ? 'boss' : ''}">${m.boss ? '⚠️ 보스 층!' : (t.floor + 1) + '층 미션'}</span>
+          <div class="m-ic">${m.ic}</div>
+          <div class="m-text">${esc(m.text)}</div>
+          <div class="m-timer" id="tm${i}">${m.secs ? (t.timer ? t.left + '초' : '') : ''}</div>
+          <div class="m-btns">
+            <button class="btn primary ok" data-a="ok" ${G.over ? 'disabled' : ''}>✅ 성공! 한 층 올라가기</button>
+            ${m.secs ? `<button class="btn" data-a="timer">⏱ ${m.secs}초 재기</button>` : ''}
+            <button class="btn" data-a="swap">🔄 다른 미션</button>
+            <button class="btn" data-a="down" ${t.floor ? '' : 'disabled'}>↩ 한 층 내려가기</button>
+          </div>`}</div></div>`;
+    }).join('');
+  }
+
+  $('arena').addEventListener('click', e => {
+    const b = e.target.closest('[data-a]'); if (!b) return;
+    const i = +b.closest('.side').dataset.i, t = G.teams[i], a = b.dataset.a;
+    if (a === 'again') { $('start').click(); return; }
+    clearInterval(t.timer); t.timer = null;
+    if (a === 'ok') {
+      t.floor++;
+      if (t.floor >= G.floors) { t.won = true; G.over = true; K.sound.fanfare(); confetti(t.color); K.say(t.name + ' 승리!'); }
+      else { t.m = newMission(t); t.m.boss ? (K.sound.boom(), K.say('보스 층!')) : K.sound.pop(); }
+    } else if (a === 'swap') { t.m = newMission(t); K.sound.tick(); }
+    else if (a === 'down') { t.floor = Math.max(0, t.floor - 1); t.m = newMission(t); }
+    else if (a === 'timer') {
+      t.left = t.m.secs; K.sound.go();
+      t.timer = setInterval(() => {
+        t.left--; const el = $('tm' + i); if (el) el.textContent = t.left > 0 ? t.left + '초' : '끝! 성공 버튼을 눌러요';
+        if (t.left <= 3 && t.left > 0) K.sound.beep();
+        if (t.left <= 0) { clearInterval(t.timer); t.timer = null; K.sound.end(); }
+      }, 1000);
+    }
+    render();
+  });
+
+  function confetti(color) {
+    const box = document.createElement('div'); box.className = 'confetti';
+    const cs = [color, '#e8a500', '#18995a', '#ffffff', '#d8323c'];
+    box.innerHTML = Array.from({ length: 90 }, () => `<i style="left:${Math.random() * 100}%;background:${cs[K.randInt(0, 4)]};animation-duration:${K.rand(1.8, 3.6)}s;animation-delay:${K.rand(0, .8)}s"></i>`).join('');
+    document.body.appendChild(box); setTimeout(() => box.remove(), 5000);
+  }
+})();
+</script>
+</body>
+</html>

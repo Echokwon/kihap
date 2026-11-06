@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>수업 도구 · 기합</title>
+<meta name="theme-color" content="#16213a">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="tools.css">
+<script src="../shared/core.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <a class="btn icon" href="../" aria-label="홈으로">←</a>
+  <h1 class="grow tb-title" id="tbTitle">수업 도구</h1>
+  <button class="btn icon" id="muteBtn" aria-label="소리 끄기/켜기">🔊</button>
+  <button class="btn icon" id="themeBtn" aria-label="밝게/어둡게">🌙</button>
+  <button class="btn icon" id="fsBtn" aria-label="전체 화면">⛶</button>
+</header>
+
+<nav class="tabs" id="tabs" aria-label="도구 고르기"></nav>
+
+<main class="tools-main">
+
+  <!-- ⏲️ 타이머 -->
+  <section class="panel" id="p-timer" hidden>
+    <div class="stage" id="timerStage">
+      <div class="ring-wrap">
+        <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
+          <circle cx="100" cy="100" r="90" class="ring-bg"/>
+          <circle cx="100" cy="100" r="90" class="ring-fg" id="timerRing"/>
+        </svg>
+        <div class="big-num" id="timerText" aria-live="off">1:00</div>
+      </div>
+    </div>
+    <div class="ctrl">
+      <div class="chips" id="timerPresets"></div>
+      <div class="row">
+        <label class="field mini">분<input type="number" id="timerMin" min="0" max="99" value="1" inputmode="numeric"></label>
+        <label class="field mini">초<input type="number" id="timerSec" min="0" max="59" value="0" inputmode="numeric"></label>
+        <button class="btn" id="timerSet">시간 맞추기</button>
+      </div>
+      <div class="row">
+        <button class="btn primary big" id="timerGo">시작</button>
+        <button class="btn big" id="timerReset">처음으로</button>
+      </div>
+      <p class="hint">스페이스바: 시작/멈춤 · 마지막 3초는 삐 소리로 알려 줘요</p>
+    </div>
+  </section>
+
+  <!-- 🔁 인터벌 -->
+  <section class="panel" id="p-interval" hidden>
+    <div class="stage phase" id="ivStage" data-phase="idle">
+      <div class="phase-label" id="ivPhase">준비</div>
+      <div class="big-num" id="ivText">0:10</div>
+      <div class="phase-sub" id="ivRound">라운드 0 / 8</div>
+      <div class="bar"><i id="ivBar"></i></div>
+    </div>
+    <div class="ctrl">
+      <div class="chips" id="ivPresets"></div>
+      <div class="row wrap4">
+        <label class="field mini">준비(초)<input type="number" id="ivPrep" min="0" max="300" value="10" inputmode="numeric"></label>
+        <label class="field mini">운동(초)<input type="number" id="ivWork" min="1" max="3600" value="20" inputmode="numeric"></label>
+        <label class="field mini">휴식(초)<input type="number" id="ivRest" min="0" max="3600" value="10" inputmode="numeric"></label>
+        <label class="field mini">라운드<input type="number" id="ivRounds" min="1" max="99" value="8" inputmode="numeric"></label>
+      </div>
+      <label class="check"><input type="checkbox" id="ivVoice" checked> 음성으로 "운동", "휴식" 알려 주기</label>
+      <div class="row">
+        <button class="btn primary big" id="ivGo">시작</button>
+        <button class="btn big" id="ivReset">처음으로</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⏱️ 스톱워치 -->
+  <section class="panel" id="p-stopwatch" hidden>
+    <div class="stage">
+      <div class="big-num sw" id="swText">0:00<small>.00</small></div>
+    </div>
+    <div class="ctrl">
+      <div class="row">
+        <button class="btn primary big" id="swGo">시작</button>
+        <button class="btn big" id="swLap" disabled>기록</button>
+        <button class="btn big" id="swReset">처음으로</button>
+      </div>
+      <ol class="laps" id="swLaps"></ol>
+    </div>
+  </section>
+
+  <!-- 🎲 주사위 -->
+  <section class="panel" id="p-dice" hidden>
+    <div class="stage">
+      <div class="dice-row" id="diceRow"></div>
+      <div class="dice-result" id="diceResult" aria-live="polite"></div>
+    </div>
+    <div class="ctrl">
+      <div class="row">
+        <div class="chips" id="diceMode">
+          <button class="chip on" data-v="num">숫자</button>
+          <button class="chip" data-v="ex">운동</button>
+        </div>
+        <div class="chips" id="diceCount">
+          <button class="chip on" data-v="1">1개</button>
+          <button class="chip" data-v="2">2개</button>
+          <button class="chip" data-v="3">3개</button>
+        </div>
+      </div>
+      <label class="field" id="diceFacesWrap" hidden>운동 주사위 6면 (한 줄에 하나)
+        <textarea id="diceFaces" rows="6"></textarea>
+      </label>
+      <div class="row"><button class="btn primary big" id="diceGo">굴리기</button></div>
+    </div>
+  </section>
+
+  <!-- 🎯 랜덤 뽑기 -->
+  <section class="panel" id="p-draw" hidden>
+    <div class="stage">
+      <div class="draw-show" id="drawShow" aria-live="polite">누가 뽑힐까요?</div>
+      <div class="teams" id="drawTeams"></div>
+    </div>
+    <div class="ctrl">
+      <label class="field">이름 명단 (한 줄에 한 명, 쉼표도 돼요)
+        <textarea id="drawNames" rows="6" placeholder="김민준&#10;이서연&#10;박도윤"></textarea>
+      </label>
+      <div class="row">
+        <label class="field mini">뽑을 인원<input type="number" id="drawN" min="1" max="50" value="1" inputmode="numeric"></label>
+        <label class="check"><input type="checkbox" id="drawNoRepeat" checked> 뽑힌 사람은 다음에 빼기</label>
+      </div>
+      <div class="row">
+        <button class="btn primary big" id="drawGo">뽑기</button>
+        <button class="btn" id="drawResetUsed">뽑힌 기록 지우기</button>
+      </div>
+      <div class="row">
+        <label class="field mini">팀 수<input type="number" id="teamN" min="2" max="10" value="2" inputmode="numeric"></label>
+        <button class="btn dark" id="teamGo">팀 나누기</button>
+      </div>
+      <p class="hint" id="drawInfo"></p>
+    </div>
+  </section>
+
+  <!-- 🏆 토너먼트 -->
+  <section class="panel" id="p-bracket" hidden>
+    <div class="stage bracket-stage">
+      <div class="champ" id="champ" hidden></div>
+      <div class="bracket" id="bracket"><p class="muted">아래에 참가자를 넣고 대진표를 만들어 주세요.</p></div>
+    </div>
+    <div class="ctrl">
+      <label class="field">참가자 (한 줄에 한 명 · 2~64명)
+        <textarea id="brNames" rows="6" placeholder="김민준&#10;이서연&#10;박도윤&#10;최하은"></textarea>
+      </label>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="brShuffle" checked> 순서 섞기</label>
+        <button class="btn primary big" id="brMake">대진표 만들기</button>
+      </div>
+      <p class="hint">이긴 사람 이름을 누르면 다음 판으로 올라가요. 잘못 눌렀으면 다시 누르면 돼요.</p>
+    </div>
+  </section>
+
+  <!-- 🚥 반응 신호 -->
+  <section class="panel" id="p-signal" hidden>
+    <div class="stage signal" id="sigStage">
+      <div class="sig-big" id="sigBig">준비</div>
+      <div class="sig-sub" id="sigSub">시작을 누르세요</div>
+    </div>
+    <div class="ctrl">
+      <div class="chips" id="sigMode">
+        <button class="chip on" data-v="color">색깔</button>
+        <button class="chip" data-v="arrow">방향</button>
+        <button class="chip" data-v="number">숫자</button>
+        <button class="chip" data-v="go">출발 신호</button>
+      </div>
+      <div class="sig-legend" id="sigLegend"></div>
+      <div class="row">
+        <label class="field mini">최소(초)<input type="number" id="sigMin" min="0.5" max="30" step="0.5" value="1.5" inputmode="decimal"></label>
+        <label class="field mini">최대(초)<input type="number" id="sigMax" min="0.5" max="30" step="0.5" value="4" inputmode="decimal"></label>
+        <label class="check"><input type="checkbox" id="sigVoice"> 음성으로 읽기</label>
+      </div>
+      <div class="row"><button class="btn primary big" id="sigGo">시작</button></div>
+      <p class="hint">출발 신호: 준비… 하고 기다렸다가 랜덤한 순간에 "출발!" — 누가 먼저 반응하는지 겨뤄 보세요.</p>
+    </div>
+  </section>
+
+  <!-- 💣 폭탄 돌리기 -->
+  <section class="panel" id="p-bomb" hidden>
+    <div class="stage bomb-stage" id="bombStage" data-st="idle">
+      <div class="bomb" id="bomb" aria-hidden="true">
+        <div class="fuse"><i id="spark"></i></div>
+        <div class="bomb-body">💣</div>
+      </div>
+      <div class="bomb-msg" id="bombMsg" aria-live="polite">폭탄을 옆 사람에게 넘겨요!</div>
+    </div>
+    <div class="ctrl">
+      <div class="row">
+        <label class="field mini">최소(초)<input type="number" id="bombMin" min="3" max="300" value="10" inputmode="numeric"></label>
+        <label class="field mini">최대(초)<input type="number" id="bombMax" min="3" max="300" value="30" inputmode="numeric"></label>
+      </div>
+      <div class="row">
+        <button class="btn primary big" id="bombGo">불 붙이기</button>
+        <button class="btn big" id="bombStop">멈추기</button>
+      </div>
+      <p class="hint">터지는 시간은 아무도 몰라요. 째깍 소리가 점점 빨라져요. 터진 사람은 벌칙 운동!</p>
+    </div>
+  </section>
+</main>
+
+<script src="tools.js"></script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>스킬 피구 · 기합</title>
+<meta name="theme-color" content="#16213a">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="../shared/base.css">
+<script src="../shared/core.js"></script>
+<style>
+  .setup { display: grid; gap: 14px; max-width: 760px; }
+  .cards-pick { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  .cards-pick label { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--bg-3); font-weight: 700; cursor: pointer; }
+  .cards-pick input { width: 20px; height: 20px; accent-color: var(--red); }
+
+  .court { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 820px) { .court { grid-template-columns: 1fr; } .mid { order: -1; } }
+  .court:fullscreen { background: var(--bg); padding: 20px; }
+  .team { display: grid; gap: 12px; padding: 16px; border-radius: 22px; color: #fff; background: var(--tc); text-align: center; }
+  .team h2 { font-size: 2rem; }
+  .alive { font-family: var(--f-display); font-size: clamp(4rem, 12vw, 8rem); line-height: 1; }
+  .alive small { font-size: .35em; opacity: .8; }
+  .people { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; min-height: 28px; }
+  .people i { font-style: normal; font-size: 1.3rem; line-height: 1; }
+  .people i.out { opacity: .25; filter: grayscale(1); }
+  .t-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .t-btns .btn { border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.14); color: #fff; min-height: 60px; font-size: 1.15rem; }
+  .t-btns .btn.draw { grid-column: 1 / -1; background: #fff; color: var(--tc); border-color: #fff; font-size: 1.25rem; }
+  .fx { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; min-height: 34px; }
+  .fx span { background: rgba(0,0,0,.25); padding: .2em .7em; border-radius: 999px; font-weight: 700; font-size: .9rem; }
+  .team.win { animation: glow 1s infinite alternate; }
+  @keyframes glow { to { box-shadow: 0 0 0 8px color-mix(in srgb, var(--tc) 40%, transparent); } }
+
+  .mid { display: grid; gap: 10px; justify-items: center; padding: 16px; min-width: 200px; border-radius: 22px; background: var(--bg-2); border: 1px solid var(--line); }
+  .clock { font-family: var(--f-display); font-size: clamp(3rem, 8vw, 5rem); line-height: 1; font-variant-numeric: tabular-nums; }
+  .clock.low { color: var(--red); }
+
+  /* 카드 뒤집기 */
+  .flip-back { position: fixed; inset: 0; z-index: 85; background: rgba(5,10,25,.7); display: grid; place-items: center; padding: 16px; }
+  .flip { width: min(340px, 86vw); aspect-ratio: 3 / 4; perspective: 1000px; cursor: pointer; }
+  .flip-in { position: relative; width: 100%; height: 100%; transition: transform .7s; transform-style: preserve-3d; }
+  .flip.open .flip-in { transform: rotateY(180deg); }
+  .face { position: absolute; inset: 0; border-radius: 22px; backface-visibility: hidden; display: grid; place-items: center; align-content: center; gap: 12px; padding: 22px; text-align: center; border: 6px solid #fff; }
+  .face.front { background: repeating-linear-gradient(45deg, var(--tc), var(--tc) 14px, color-mix(in srgb, var(--tc) 70%, #000) 14px, color-mix(in srgb, var(--tc) 70%, #000) 28px); color: #fff; font-family: var(--f-display); font-size: 3rem; }
+  .face.back { transform: rotateY(180deg); background: #fff; color: #16213a; }
+  .face.back .ic { font-size: 5rem; line-height: 1; }
+  .face.back b { font-family: var(--f-display); font-size: 2.2rem; color: var(--tc); }
+  .face.back p { margin: 0; font-weight: 700; font-size: 1.1rem; word-break: keep-all; }
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="box setup" id="setup">
+    <h2 style="font-size:1.8rem">🔴 스킬 피구</h2>
+    <p class="hint" style="font-size:1rem">평범한 피구에 스킬 카드를 더했어요. 팀마다 정해진 장수만큼 카드를 뽑아 쓸 수 있어요. 선생님이 화면에서 아웃·부활을 눌러 인원을 관리해요.</p>
+    <div class="grid2">
+      <label class="field">팀 1 이름<input id="n1" value="불꽃팀"></label>
+      <label class="field">팀 2 이름<input id="n2" value="번개팀"></label>
+      <label class="field">팀당 인원<input id="ppl" type="number" min="1" max="30" value="8" inputmode="numeric"></label>
+      <label class="field">경기 시간 (분)<input id="mins" type="number" min="1" max="20" value="3" inputmode="numeric"></label>
+      <label class="field">팀당 카드 장수<input id="ncards" type="number" min="0" max="10" value="3" inputmode="numeric"></label>
+    </div>
+    <div class="field">쓸 카드 고르기<div class="cards-pick" id="pick"></div></div>
+    <button class="btn primary big" id="start">경기 시작!</button>
+  </section>
+
+  <section id="play" hidden>
+    <div class="toolbar" style="margin-bottom:12px"><button class="btn" id="back">⚙️ 설정으로</button><span class="grow"></span><button class="btn" id="fs">⛶ 전체 화면</button></div>
+    <div class="court" id="court"></div>
+  </section>
+</main>
+<script>
+(function () {
+  const K = Kihap, $ = id => document.getElementById(id), esc = K.esc;
+  K.topbar('🔴 스킬 피구');
+  K.markLast('dodgeball', '스킬 피구');
+
+  // 카드: id, 그림, 이름, 설명, 효과 대상(self/foe/both/none), 지속 초, 즉시 효과
+  const CARDS = [
+    { id: 'shield', ic: '🛡️', name: '방패', desc: '다음에 공 맞는 친구 1명은 세이프!', fx: 'self', label: '방패 1회' },
+    { id: 'revive', ic: '💖', name: '부활', desc: '아웃된 친구 2명이 돌아와요!', now: (t) => { t.alive = Math.min(t.max, t.alive + 2); } },
+    { id: 'double', ic: '⚾', name: '공 하나 더', desc: '30초 동안 우리 팀은 공 2개로 던져요!', fx: 'self', secs: 30, label: '공 2개' },
+    { id: 'freeze', ic: '🧊', name: '얼음 마법', desc: '상대 팀은 10초 동안 공을 던질 수 없어요!', fx: 'foe', secs: 10, label: '얼음' },
+    { id: 'hero', ic: '🦸', name: '영웅', desc: '우리 팀 1명을 골라요. 그 친구는 두 번 맞아야 아웃!', fx: 'self', label: '영웅' },
+    { id: 'lefty', ic: '🫲', name: '반대 손', desc: '상대 팀은 30초 동안 안 쓰는 손으로만 던져요!', fx: 'foe', secs: 30, label: '반대 손' },
+    { id: 'turtle', ic: '🐢', name: '거북이', desc: '상대 팀은 20초 동안 걸어서만 움직여요!', fx: 'foe', secs: 20, label: '걷기만' },
+    { id: 'storm', ic: '🌪️', name: '회오리', desc: '모두 멈춰! 양 팀 다 제자리 3바퀴 돌고 다시 시작!', fx: 'both', secs: 8, label: '회오리' },
+    { id: 'swap', ic: '🔁', name: '외야 탈출', desc: '우리 팀 외야 1명이 내야로 들어와요!', now: (t) => { t.alive = Math.min(t.max, t.alive + 1); } },
+    { id: 'kihap', ic: '📣', name: '기합 대결', desc: '양 팀 대표가 기합 크게! 더 큰 팀이 1명 부활!', fx: 'none' },
+    { id: 'miss', ic: '💨', name: '꽝', desc: '아무 일도 일어나지 않았어요… 다음 기회에!', fx: 'none' }
+  ];
+  const saved = K.get('dodge:cfg', null);
+  const on = new Set(saved ? saved.cards : CARDS.map(c => c.id));
+  $('pick').innerHTML = CARDS.map(c => `<label><input type="checkbox" value="${c.id}" ${on.has(c.id) ? 'checked' : ''}>${c.ic} ${c.name}</label>`).join('');
+  if (saved) { $('n1').value = saved.n1; $('n2').value = saved.n2; $('ppl').value = saved.ppl; $('mins').value = saved.mins; $('ncards').value = saved.ncards; }
+
+  let G = null, tick = null;
+  const num = (id, a, b, d) => { let v = Math.round(Number($(id).value)); if (!isFinite(v)) v = d; return Math.min(b, Math.max(a, v)); };
+
+  $('start').onclick = () => {
+    const cards = [...document.querySelectorAll('#pick input:checked')].map(i => i.value);
+    if (!cards.length && num('ncards', 0, 10, 3) > 0) { K.toast('카드를 하나 이상 골라 주세요'); return; }
+    const c = { n1: $('n1').value.trim() || '불꽃팀', n2: $('n2').value.trim() || '번개팀', ppl: num('ppl', 1, 30, 8), mins: num('mins', 1, 20, 3), ncards: num('ncards', 0, 10, 3), cards };
+    K.set('dodge:cfg', c);
+    G = { time: c.mins * 60, left: c.mins * 60, run: false, over: false, deck: cards,
+      teams: [[c.n1, '#d8323c'], [c.n2, '#2457c5']].map(([name, tc]) => ({ name, tc, max: c.ppl, alive: c.ppl, cards: c.ncards, fx: [] })) };
+    $('setup').hidden = true; $('play').hidden = false; render();
+  };
+  $('back').onclick = () => { stop(); $('play').hidden = true; $('setup').hidden = false; };
+  $('fs').onclick = () => K.fullscreen($('court'));
+
+  function stop() { G && (G.run = false); clearInterval(tick); }
+  function start() {
+    if (G.over) return; G.run = true; K.sound.whistle(); K._wantAwake = true; K.keepAwake(true);
+    clearInterval(tick); tick = setInterval(() => {
+      G.left--; G.teams.forEach(t => t.fx = t.fx.filter(f => f.left == null || --f.left > 0));
+      if (G.left <= 10 && G.left > 0) K.sound.beep();
+      if (G.left <= 0) { G.left = 0; finish(); }
+      render();
+    }, 1000);
+    render();
+  }
+  function finish(by) {
+    stop(); G.over = true; K.sound.end();
+    const [a, b] = G.teams;
+    G.winner = by != null ? by : a.alive === b.alive ? -1 : (a.alive > b.alive ? 0 : 1);
+    setTimeout(() => K.say(G.winner < 0 ? '무승부!' : G.teams[G.winner].name + ' 승리!'), 900);
+  }
+  const mmss = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+
+  function render() {
+    const T = (t, i) => `<div class="team ${G.winner === i ? 'win' : ''}" style="--tc:${t.tc}" data-i="${i}">
+      <h2>${esc(t.name)}</h2>
+      <div class="alive">${t.alive}<small> / ${t.max}</small></div>
+      <div class="people">${Array.from({ length: t.max }, (_, k) => `<i class="${k < t.alive ? '' : 'out'}">🙂</i>`).join('')}</div>
+      <div class="fx">${t.fx.map(f => `<span>${f.ic} ${f.label}${f.left != null ? ' ' + f.left + '초' : ''}</span>`).join('')}</div>
+      <div class="t-btns">
+        <button class="btn" data-a="out" ${G.over || !t.alive ? 'disabled' : ''}>💥 아웃</button>
+        <button class="btn" data-a="in" ${G.over || t.alive >= t.max ? 'disabled' : ''}>💖 부활</button>
+        <button class="btn draw" data-a="draw" ${G.over || !t.cards || !G.deck.length ? 'disabled' : ''}>🃏 스킬 카드 뽑기 (${t.cards}장 남음)</button>
+      </div></div>`;
+    $('court').innerHTML = T(G.teams[0], 0) + `
+      <div class="mid">
+        <div class="clock ${G.left <= 10 ? 'low' : ''}">${mmss(G.left)}</div>
+        ${G.over ? `<b style="font-family:var(--f-display);font-size:1.8rem;text-align:center">${G.winner < 0 ? '무승부!' : '🏆 ' + esc(G.teams[G.winner].name) + '<br>승리!'}</b>
+          <button class="btn primary" data-a="again">다시 하기</button>`
+        : `<button class="btn primary big" data-a="clock">${G.run ? '⏸ 멈춤' : (G.left < G.time ? '▶ 계속' : '▶ 시작')}</button>
+          <button class="btn sm" data-a="end">경기 끝내기</button>`}
+      </div>` + T(G.teams[1], 1);
+  }
+
+  $('court').addEventListener('click', e => {
+    const b = e.target.closest('[data-a]'); if (!b) return;
+    const a = b.dataset.a, side = b.closest('.team'), i = side ? +side.dataset.i : -1, t = G.teams[i];
+    if (a === 'clock') G.run ? (stop(), render()) : start();
+    else if (a === 'end') finish();
+    else if (a === 'again') $('start').click();
+    else if (a === 'out') {
+      const sh = t.fx.find(f => f.id === 'shield' || f.id === 'hero');
+      if (sh) { t.fx.splice(t.fx.indexOf(sh), 1); K.sound.pop(); K.toast(`${sh.ic} ${sh.label} 발동! 세이프!`); }
+      else { t.alive--; K.sound.beep(); if (!t.alive) finish(1 - i); }
+    }
+    else if (a === 'in') { t.alive++; K.sound.pop(); }
+    else if (a === 'draw') return draw(i);
+    if (G) render();
+  });
+
+  function draw(i) {
+    const t = G.teams[i], foe = G.teams[1 - i];
+    const c = CARDS.find(x => x.id === G.deck[K.randInt(0, G.deck.length - 1)]);
+    t.cards--;
+    const back = document.createElement('div'); back.className = 'flip-back';
+    back.innerHTML = `<div class="flip" style="--tc:${t.tc}" role="button" aria-label="카드 뒤집기"><div class="flip-in">
+      <div class="face front">?<small style="font-size:1rem">눌러서 뒤집기</small></div>
+      <div class="face back"><div class="ic">${c.ic}</div><b>${c.name}</b><p>${c.desc}</p><span class="hint">화면을 누르면 닫혀요</span></div></div></div>`;
+    document.body.appendChild(back);
+    const card = back.querySelector('.flip');
+    let opened = false;
+    const open = () => {
+      opened = true; card.classList.add('open'); K.sound[c.id === 'miss' ? 'beep' : 'fanfare']();
+      if (c.now) c.now(t);
+      const add = (team) => team.fx.push({ id: c.id, ic: c.ic, label: c.label || c.name, left: c.secs || null });
+      if (c.fx === 'self') add(t); else if (c.fx === 'foe') add(foe); else if (c.fx === 'both') { add(t); add(foe); }
+      render();
+    };
+    back.addEventListener('click', () => { if (!opened) open(); else back.remove(); });
+    K.sound.roll(); setTimeout(() => { if (!opened) open(); }, 1100);
+  }
+})();
+</script>
+</body>
+</html>
