@@ -9,8 +9,14 @@
     try { const v = localStorage.getItem('kihap:' + key); return v == null ? fallback : JSON.parse(v); }
     catch (e) { return fallback; }
   };
+  let warnedFull = false;
   K.set = (key, value) => {
-    try { localStorage.setItem('kihap:' + key, JSON.stringify(value)); } catch (e) {}
+    try { localStorage.setItem('kihap:' + key, JSON.stringify(value)); return true; }
+    catch (e) {
+      // 저장 공간이 가득 찼거나 막혀 있으면 조용히 넘어가지 않고 한 번은 알려 줌
+      if (!warnedFull) { warnedFull = true; setTimeout(() => K.toast && K.toast('저장 공간이 부족해 저장하지 못했습니다. 원생 관리에서 백업을 받아 두세요', 6000), 0); }
+      return false;
+    }
   };
 
   /* ---------- 테마 ---------- */
@@ -153,11 +159,33 @@
     try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = 'ko-KR'; u.rate = 1.05; speechSynthesis.speak(u); } catch (e) {}
   };
 
+  /* ---------- 맨 위 층에 띄우기 ---------- */
+  // 전체 화면 중에는 그 요소 밖에 붙인 알림·창이 가려진다.
+  // 브라우저의 '맨 위 층'(popover)에 올리면 전체 화면 위에도 보이고, 화면을 다시 그려도 지워지지 않는다.
+  const canTop = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype;
+  const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+  K.overlay = el => {
+    if (canTop) {
+      el.setAttribute('popover', 'manual'); el.classList.add('k-top');
+      if (!el.isConnected) document.body.appendChild(el);
+      try { if (el.matches(':popover-open')) el.hidePopover(); el.showPopover(); } catch (e) {}
+    } else {                                   // 옛 브라우저: 전체 화면 요소 안에 붙이는 것으로 대신함
+      const fs = fsEl(), host = fs && fs !== document.documentElement ? fs : document.body;
+      if (el.parentNode !== host) host.appendChild(el);
+    }
+    return el;
+  };
+  // 전체 화면을 켜거나 끄면, 떠 있던 것들을 다시 맨 위로
+  const reTop = () => document.querySelectorAll('.k-top, .modal-back, .toast.show').forEach(el => K.overlay(el));
+  document.addEventListener('fullscreenchange', reTop);
+  document.addEventListener('webkitfullscreenchange', reTop);
+
   /* ---------- 알림 문구 ---------- */
   K.toast = (msg, ms = 1800) => {
     let el = document.querySelector('.toast');
-    if (!el) { el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
-    el.textContent = msg; el.classList.add('show');
+    if (!el) { el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status'); }
+    K.overlay(el);
+    el.textContent = msg; void el.offsetWidth; el.classList.add('show');
     clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), ms);
   };
 
@@ -173,11 +201,28 @@
 
   K.fullscreen = el => {
     el = el || document.documentElement;
-    if (document.fullscreenElement) document.exitFullscreen();
-    else if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+    if (fsEl()) return (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;      // 아이패드 옛 버전은 webkit 이름만 있음
+    if (!req) return K.toast('이 기기의 브라우저는 전체 화면을 지원하지 않습니다. ‘홈 화면에 추가’로 설치하면 주소창 없이 쓸 수 있습니다', 5000);   // 아이폰
+    try { const p = req.call(el); if (p && p.catch) p.catch(() => K.toast('전체 화면으로 바꾸지 못했습니다')); } catch (e) {}
   };
 
   /* ---------- 기타 ---------- */
+  // 글자를 입력하는 중인지 (단축키가 끼어들면 안 될 때 확인)
+  K.typing = () => { const a = document.activeElement; return !!a && (/INPUT|TEXTAREA|SELECT/.test(a.tagName) || a.isContentEditable); };
+  // 숫자 칸 읽기: 비어 있거나 숫자가 아니면 기본값, 그리고 최소~최대 사이로
+  K.num = (el, min, max, def) => {
+    el = typeof el === 'string' ? document.getElementById(el) : el;
+    const raw = String(el ? el.value : '').trim(); let v = raw === '' ? def : Number(raw);
+    if (!isFinite(v)) v = def;
+    return Math.min(max, Math.max(min, v));
+  };
+  // 마우스·손가락으로 누른 버튼에 초점이 남으면 스페이스바 단축키가 그 버튼을 다시 누르게 된다 → 초점을 풀어 줌 (키보드로 고른 버튼은 그대로)
+  document.addEventListener('click', e => {
+    if (!e.detail || !e.target.closest) return;
+    const b = e.target.closest('button, a.btn, [role=tab]');
+    if (b && b === document.activeElement) b.blur();
+  });
   K.rand = (a, b) => a + Math.random() * (b - a);
   K.randInt = (a, b) => Math.floor(K.rand(a, b + 1));
   K.shuffle = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -216,23 +261,39 @@
   };
 
   /* ---------- 확인 창 · 모달 ---------- */
-  K.modal = (html, onMount) => {
+  // opts.dismiss === false 이면 바깥을 누르거나 Esc 로는 닫히지 않음 (꼭 골라야 하는 창)
+  // opts.onClose(why) 는 어떤 식으로 닫히든 한 번 불림
+  K.modal = (html, onMount, opts = {}) => {
     const back = document.createElement('div');
     back.className = 'modal-back';
     back.innerHTML = `<div class="modal card" role="dialog" aria-modal="true">${html}</div>`;
-    const close = () => { back.remove(); removeEventListener('keydown', esc); };
-    const esc = e => { if (e.key === 'Escape') close(); };
-    back.addEventListener('click', e => { if (e.target === back || e.target.closest('[data-close]')) close(); });
+    const openedAt = performance.now();
+    let closed = false, downOnBack = false;
+    const close = why => {
+      if (closed) return; closed = true;
+      back.remove(); removeEventListener('keydown', esc);
+      if (opts.onClose) opts.onClose(typeof why === 'string' ? why : 'done');
+    };
+    const esc = e => { if (e.key === 'Escape' && opts.dismiss !== false) close('esc'); };
+    // 바깥(어두운 곳)은 '거기서 눌렀다 뗀' 경우에만 닫는다.
+    // 글자를 끌다가 밖에서 손을 떼거나, 창을 여는 버튼을 두 번 눌렀을 때 닫혀 버리지 않게.
+    back.addEventListener('pointerdown', e => { downOnBack = e.target === back; });
+    back.addEventListener('click', e => {
+      if (e.target.closest('[data-close]')) return close('cancel');
+      if (e.target === back && downOnBack && opts.dismiss !== false && performance.now() - openedAt > 350) close('outside');
+    });
     addEventListener('keydown', esc);
-    document.body.appendChild(back);
+    K.overlay(back);
     const first = back.querySelector('input,select,textarea'); if (first) setTimeout(() => first.focus(), 30);
     if (onMount) onMount(back.querySelector('.modal'), close);
     return close;
   };
   K.confirm = (msg, okLabel = '확인') => new Promise(res => {
+    let ok = false;
     K.modal(`<p style="margin:0;font-weight:700;font-size:1.05rem">${msg}</p>
       <div class="row" style="justify-content:flex-end"><button class="btn" data-close>취소</button><button class="btn primary" data-ok>${okLabel}</button></div>`,
-      (m, close) => { m.querySelector('[data-ok]').onclick = () => { close(); res(true); }; m.closest('.modal-back').addEventListener('click', e => { if (e.target.closest('[data-close]') || e.target.classList.contains('modal-back')) res(false); }); });
+      (m, close) => { m.querySelector('[data-ok]').onclick = () => { ok = true; close('ok'); }; },
+      { onClose: () => res(ok) });      // Esc 로 닫아도 '아니오'로 끝남
   });
 
   /* ---------- 오프라인 저장 ---------- */

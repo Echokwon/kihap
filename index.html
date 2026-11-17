@@ -14,8 +14,8 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" crossorigin>
 <link rel="stylesheet" href="shared/base.css">
 <script src="shared/core.js"></script>
 <script src="shared/icons.js"></script>
@@ -108,7 +108,7 @@
       ['ladder/', 'ladder', '운동 사다리', '주사위 보드게임과 운동 미션', 'ladder'] ] },
     { title: '대회', color: '#8a3ffc', items: [
       ['scoreboard/', 'chart-column', '스코어보드', '겨루기 점수판과 라운드 타이머', 'scoreboard'],
-      ['poomsae/', 'belt', '공인 품새 채점', '정확성 · 표현성, 심판 1~5명', 'poomsae'],
+      ['poomsae/?mode=std', 'belt', '공인 품새 채점', '정확성 · 표현성, 심판 1~5명', 'poomsae'],
       ['poomsae/?mode=free', 'music', '자유 품새 채점', '기술 · 표현 항목 채점', 'poomsae-free'] ] }
   ];
 
@@ -121,9 +121,14 @@
     </section>`).join('');
 
   // 이어서 쓰기
-  const last = K.get('last', null);
-  const hit = last && SECTIONS.flatMap(s => s.items).find(x => x[4] === last.id);
-  if (hit) { const r = $('resume'); r.hidden = false; r.href = hit[0]; r.innerHTML = `${I(hit[1])}이어서: ${hit[2]}`; }
+  const showResume = () => {
+    const last = K.get('last', null);
+    const hit = last && SECTIONS.flatMap(s => s.items).find(x => x[4] === last.id);
+    if (hit) { const r = $('resume'); r.hidden = false; r.href = hit[0]; r.innerHTML = `${I(hit[1])}이어서: ${hit[2]}`; }
+  };
+  showResume();
+  // ‘뒤로’로 돌아온 홈 화면은 예전 모습 그대로 살아나므로, 마지막에 쓴 도구와 소리·테마 표시를 다시 맞춤
+  addEventListener('pageshow', e => { if (e.persisted) { K.applyTheme(); showResume(); syncBtns(); } });
 
   // 소리 · 테마
   const syncBtns = () => { $('muteBtn').innerHTML = I(K.muted() ? 'volume-x' : 'volume-2'); $('themeBtn').innerHTML = I(K.isDark() ? 'sun' : 'moon'); };

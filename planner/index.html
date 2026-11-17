@@ -9,8 +9,8 @@
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" crossorigin>
 <link rel="stylesheet" href="../shared/base.css">
 <script src="../shared/core.js"></script>
 <script src="../shared/icons.js"></script>
@@ -28,7 +28,7 @@
   .sh-head { display: flex; align-items: flex-end; gap: 16px; border-bottom: 3px solid var(--p1); padding-bottom: 10px; }
   .sh-month { font-family: var(--f-num); font-weight: 700; font-size: 4.4rem; line-height: .85; color: var(--p2); }
   .sh-month small { font-family: var(--f-display); font-size: .42em; font-weight: 800; margin-left: 2px; }
-  .sh-title { flex: 1; font-family: var(--f-display); font-size: 2rem; outline: none; color: var(--p1); }
+  .sh-title { flex: 1; font-family: var(--f-display); font-size: 2rem; outline: none; color: var(--p1); min-height: 1.2em; }
   .sh-dojo { font-weight: 700; color: var(--p1); opacity: .8; outline: none; }
   .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
   .dow { text-align: center; font-weight: 900; padding: 6px 0; border-radius: 8px; background: var(--p1); color: #fff; }
@@ -52,10 +52,24 @@
   .legend span { padding: 1px 8px; border-radius: 6px; color: #fff; }
   .exporting .tag:not(.set) { visibility: hidden; }
   .exporting .day-txt:focus { background: none; }
+  .exporting .day.today { box-shadow: none; }      /* ‘오늘’ 표시는 화면에서만 (이미지로 저장하면 숫자를 가렸음) */
   @media print {
     @page { size: A4 landscape; margin: 8mm; }
+    body { min-height: 0; }
+    .page { padding: 0; max-width: none; }
     .page > *:not(.sheet-wrap) { display: none !important; }
-    .sheet { box-shadow: none; min-width: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .sheet-wrap { overflow: visible; padding: 0; }
+    /* 종이 한 장(가로 A4) 높이에 맞추고, 달력 줄이 남는 높이를 똑같이 나눠 가짐 → 5주·6주인 달도 한 장에 */
+    .sheet { box-shadow: none; min-width: 0; border-radius: 0; padding: 0; height: 190mm; gap: 8px; grid-template-rows: auto minmax(0, 1fr) auto; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .cal { grid-template-rows: auto; grid-auto-rows: minmax(0, 1fr); min-height: 0; gap: 4px; }
+    .day { min-height: 0; overflow: hidden; padding: 4px 6px; }
+    .day.today { box-shadow: none; }
+    .day-txt { min-height: 0; font-size: .8rem; line-height: 1.3; }
+    .sh-month { font-size: 3.4rem; }
+    .note { padding: 6px 10px; }
+    .note div { min-height: 2.4em; font-size: .85rem; }
+    /* 6주인 달은 칸이 낮아지므로 글자를 조금 더 작게 (넷째 줄까지 보이게) */
+    .cal:has(> :nth-child(49)) .day-txt { font-size: .72rem; line-height: 1.22; }
     .tag:not(.set) { visibility: hidden; }
   }
 </style>

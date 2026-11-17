@@ -9,8 +9,8 @@
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" crossorigin>
 <link rel="stylesheet" href="../shared/base.css">
 <script src="../shared/core.js"></script>
 <script src="../shared/icons.js"></script>
@@ -49,6 +49,7 @@
   .side.win .mission { background: var(--tc); color: #fff; }
   .side.win .m-ic { color: #fff; }
   .arena:fullscreen { background: var(--bg); padding: 20px; overflow: auto; }
+  .arena:-webkit-full-screen { background: var(--bg); padding: 20px; overflow: auto; }   /* 옛 아이패드 */
 </style>
 </head>
 <body>
@@ -101,8 +102,10 @@
   // 운동 이름으로 아이콘 고르기
   const iconFor = (name, unit) => /차기/.test(name) ? 'kick' : /점프|뛰기|잭/.test(name) ? 'footprints' : /걸음|왕복/.test(name) ? 'route'
     : unit === '초' ? 'timer' : /지르기/.test(name) ? 'hand' : 'dumbbell';
-  // 예전 형식(그림 | 이름 | 횟수 | 단위)이면 첫 칸을 빼서 보여 줌
-  const migrate = txt => String(txt || '').split('\n').map(l => { const p = l.split('|'); return p.length >= 4 ? p.slice(1).map(s => s.trim()).join(' | ') : l; }).join('\n');
+  // 예전 형식(그림 | 이름 | 횟수 | 단위)이면 첫 칸을 빼서 보여 줌.
+  // 새 형식 줄 끝에 ‘|’가 더 붙어 네 칸이 된 것(둘째 칸이 숫자이고 셋째 칸은 단위)은 예전 형식이 아니므로 그대로 둠
+  const isNum = s => /^\s*\d/.test(s || '');
+  const migrate = txt => String(txt || '').split('\n').map(l => { const p = l.split('|'); return p.length >= 4 && !(isNum(p[1]) && !isNum(p[2])) ? p.slice(1).map(s => s.trim()).join(' | ') : l; }).join('\n');
 
   const cfg = K.get('tower:cfg', { mode: 1, floors: 10, level: 1, t1: '청룡팀', t2: '백호팀', missions: DEF });
   $('sMissions').value = migrate(cfg.missions) || DEF;
@@ -114,8 +117,18 @@
   const val = id => document.querySelector(`#${id} .chip.on`).dataset.v;
 
   let G = null;
+  // 횟수 칸에 ‘15회’처럼 단위까지 적어도 숫자를 읽고, 단위 칸이 비어 있으면 그 단위를 씀
+  const count = (n, unit) => { const m = String(n || '').match(/(\d+(?:\.\d+)?)\s*(.*)/); return { n: (m && Number(m[1])) || 10, unit: unit || (m && m[2].trim()) || '회' }; };
   const parse = () => migrate($('sMissions').value).split('\n').map(l => l.split('|').map(s => s.trim())).filter(p => p[0])
-    .map(([name, n, unit]) => ({ name, n: Number(n) || 10, unit: unit || '회', ic: iconFor(name, unit || '회') }));
+    .map(p => {
+      // ‘스쿼트 15회’처럼 칸을 나누지 않고 적은 줄은 끝의 숫자를 횟수로 읽음 (안 그러면 ‘스쿼트 15회 10회’가 됨)
+      const one = p.length === 1 && p[0].match(/^(.*\S)\s+(\d+(?:\.\d+)?\s*\S*)$/);
+      const [name, n, unit] = one ? [one[1], one[2]] : p, c = count(n, unit);
+      return { name, n: c.n, unit: c.unit, ic: iconFor(name, c.unit) };
+    });
+  // 돌고 있는 초 재기를 모두 멈춤 (한 팀이 이긴 뒤나 새 게임에서 옛 초 재기가 계속 울리지 않게)
+  const stopTimers = () => { if (G) G.teams.forEach(t => { clearInterval(t.timer); t.timer = null; t.timeUp = false; }); };
+  const TIME_UP = '<small>시간 끝 — 성공 버튼을 누르세요</small>';
 
   function newMission(team) {
     const f = team.floor + 1, isBoss = f % 5 === 0 || f === G.floors;
@@ -135,13 +148,14 @@
     const mode = +val('sMode');
     Object.assign(cfg, { mode, floors: +val('sFloors'), level: +val('sLevel'), t1: $('sT1').value.trim() || '청룡팀', t2: $('sT2').value.trim() || '백호팀', missions: $('sMissions').value });
     K.set('tower:cfg', cfg);
+    stopTimers();
     G = { floors: cfg.floors, level: cfg.level, missions, over: false,
       teams: (mode === 2 ? [cfg.t1, cfg.t2] : ['우리 반']).map((name, i) => ({ name, floor: 0, color: COLORS[i], m: null, timer: null, left: 0 })) };
     G.teams.forEach(t => t.m = newMission(t));
     $('setup').hidden = true; $('play').hidden = false; K._wantAwake = true; K.keepAwake(true);
     render(); K.sound.whistle();
   };
-  $('back').onclick = () => { if (G) G.teams.forEach(t => clearInterval(t.timer)); $('play').hidden = true; $('setup').hidden = false; };
+  $('back').onclick = () => { stopTimers(); $('play').hidden = true; $('setup').hidden = false; };
   $('fs').onclick = () => K.fullscreen($('arena'));
 
   function render() {
@@ -157,7 +171,7 @@
           <span class="m-tag ${m.boss ? 'boss' : ''}">${m.boss ? I('siren') + '보스 층' : (t.floor + 1) + '층 미션'}</span>
           <div class="m-ic">${I(m.ic)}</div>
           <div class="m-text">${esc(m.text)}</div>
-          <div class="m-timer" id="tm${i}">${m.secs && t.timer ? t.left + '<small>초</small>' : ''}</div>
+          <div class="m-timer" id="tm${i}">${m.secs && t.timer ? t.left + '<small>초</small>' : t.timeUp ? TIME_UP : ''}</div>
           <div class="m-btns">
             <button class="btn primary ok" data-a="ok" ${G.over ? 'disabled' : ''}>${I('check')}성공 — 한 층 올라가기</button>
             ${m.secs ? `<button class="btn" data-a="timer">${I('timer')}${m.secs}초 재기</button>` : ''}
@@ -171,19 +185,20 @@
     const b = e.target.closest('[data-a]'); if (!b) return;
     const i = +b.closest('.side').dataset.i, t = G.teams[i], a = b.dataset.a;
     if (a === 'again') { $('start').click(); return; }
-    clearInterval(t.timer); t.timer = null;
+    clearInterval(t.timer); t.timer = null; t.timeUp = false;
     if (a === 'ok') {
       t.floor++;
-      if (t.floor >= G.floors) { t.won = true; G.over = true; K.sound.end(); setTimeout(() => K.sound.fanfare(), 900); }
+      if (t.floor >= G.floors) { t.won = true; G.over = true; stopTimers(); K.sound.end(); setTimeout(() => K.sound.fanfare(), 900); }
       else { t.m = newMission(t); t.m.boss ? K.sound.boom() : K.sound.pop(); }
     } else if (a === 'swap') { t.m = newMission(t); K.sound.tick(); }
     else if (a === 'down') { t.floor = Math.max(0, t.floor - 1); t.m = newMission(t); }
     else if (a === 'timer') {
       t.left = t.m.secs; K.sound.go();
       t.timer = setInterval(() => {
-        t.left--; const el = $('tm' + i); if (el) el.innerHTML = t.left > 0 ? t.left + '<small>초</small>' : '<small>시간 끝 — 성공 버튼을 누르세요</small>';
+        t.left--; const el = $('tm' + i); if (el) el.innerHTML = t.left > 0 ? t.left + '<small>초</small>' : TIME_UP;
         if (t.left <= 3 && t.left > 0) K.sound.beep();
-        if (t.left <= 0) { clearInterval(t.timer); t.timer = null; K.sound.end(); }
+        // 끝났다는 것을 적어 둠 → 다른 팀이 버튼을 눌러 화면을 다시 그려도 ‘시간 끝’ 안내가 남음
+        if (t.left <= 0) { clearInterval(t.timer); t.timer = null; t.timeUp = true; K.sound.end(); }
       }, 1000);
     }
     render();

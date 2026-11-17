@@ -9,15 +9,17 @@
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" crossorigin>
 <link rel="stylesheet" href="../shared/base.css">
 <script src="../shared/core.js"></script>
 <script src="../shared/icons.js"></script>
 <style>
   .setup { display: grid; gap: 14px; max-width: 760px; }
   .stage { display: grid; gap: 14px; justify-items: center; text-align: center; padding: 22px 16px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--line); min-height: 60vh; align-content: center; }
-  .stage:fullscreen { border-radius: 0; }
+  /* 낮은 화면에서 아래 버튼까지 내려갈 수 있게 스크롤을 켬. safe: 내용이 넘칠 때는 가운데 대신 위에서부터 놓아 윗부분이 잘리지 않게 */
+  .stage:fullscreen { border-radius: 0; overflow: auto; align-content: safe center; }
+  .stage:-webkit-full-screen { border-radius: 0; overflow: auto; }   /* 옛 아이패드 */
   .turn { font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(1.6rem, 4vw, 2.6rem); }
   .turn b { color: var(--tc); }
   .word { font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(3rem, 13vw, 9rem); line-height: 1.1; word-break: keep-all; padding: .2em .5em; border-radius: 12px; background: var(--bg); border: 3px solid var(--tc); min-width: min(90%, 600px); }
@@ -92,19 +94,24 @@
   const cfg = K.get('cha:cfg', { cats: ['동물', '태권도'], custom: '', nt: 2, secs: 60, rounds: 2, passes: 2, hide: false });
   $('cats').innerHTML = Object.keys(WORDS).concat('우리 주제').map(c => `<button class="chip ${cfg.cats.includes(c) ? 'on' : ''}">${c}</button>`).join('');
   $('cats').onclick = e => { const c = e.target.closest('.chip'); if (c) c.classList.toggle('on'); };
+  // 제시어를 적으면 ‘우리 주제’를 저절로 켬 (켜 두지 않으면 적은 낱말이 하나도 나오지 않음)
+  $('custom').oninput = () => { if ($('custom').value.trim()) [...document.querySelectorAll('#cats .chip')].find(c => c.textContent === '우리 주제').classList.add('on'); };
   $('custom').value = cfg.custom; $('nt').value = cfg.nt; $('secs').value = cfg.secs; $('rounds').value = cfg.rounds; $('passes').value = cfg.passes; $('hide').checked = cfg.hide;
 
   let G = null, timer = null;
-  const num = (id, a, b, d) => { let v = Math.round(Number($(id).value)); if (!isFinite(v)) v = d; return Math.min(b, Math.max(a, v)); };
+  // 숫자 칸을 비워 두면 최솟값이 아니라 기본값으로 (K.num), 소수는 반올림
+  const num = (id, a, b, d) => Math.round(K.num(id, a, b, d));
 
   $('start').onclick = () => {
     const cats = [...document.querySelectorAll('#cats .chip.on')].map(c => c.textContent);
     const customWords = $('custom').value.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
     let pool = [];
     cats.forEach(c => { if (c === '우리 주제') customWords.forEach(w => pool.push([w, c])); else split(WORDS[c]).forEach(w => pool.push([w, c])); });
-    if (!pool.length) { K.toast('주제를 하나 이상 골라 주세요'); return; }
+    if (!pool.length) { K.toast(cats.includes('우리 주제') ? '‘우리 주제’에 넣을 제시어를 먼저 적어 주세요' : '주제를 하나 이상 골라 주세요'); return; }
     Object.assign(cfg, { cats, custom: $('custom').value, nt: +$('nt').value, secs: num('secs', 15, 300, 60), rounds: num('rounds', 1, 10, 2), passes: num('passes', 0, 10, 2), hide: $('hide').checked });
+    $('secs').value = cfg.secs; $('rounds').value = cfg.rounds; $('passes').value = cfg.passes;   // 실제로 쓰는 값을 칸에도 보여 줌
     K.set('cha:cfg', cfg);
+    clearInterval(timer);
     G = { pool: K.shuffle(pool), idx: 0, team: 0, turn: 0, phase: 'ready',
       teams: Array.from({ length: cfg.nt }, (_, i) => ({ name: (i + 1) + '팀', color: COLORS[i], score: 0 })) };
     $('setup').hidden = true; $('play').hidden = false; render();
@@ -112,7 +119,16 @@
   $('back').onclick = () => { clearInterval(timer); $('play').hidden = true; $('setup').hidden = false; };
   $('fs').onclick = () => K.fullscreen($('stage'));
 
-  const word = () => { if (G.idx >= G.pool.length) { G.pool = K.shuffle(G.pool); G.idx = 0; } return G.pool[G.idx]; };
+  const word = () => {
+    if (G.idx >= G.pool.length) {
+      const last = G.pool[G.pool.length - 1][0];
+      G.pool = K.shuffle(G.pool); G.idx = 0;
+      // 다 돌아서 다시 섞었을 때 방금 낱말이 곧바로 또 나오지 않게, 맨 앞을 다른 낱말과 바꿈 (낱말이 둘 이상일 때)
+      const j = G.pool[0][0] === last ? G.pool.findIndex(p => p[0] !== last) : 0;
+      if (j > 0) [G.pool[0], G.pool[j]] = [G.pool[j], G.pool[0]];
+    }
+    return G.pool[G.idx];
+  };
   const board = () => `<div class="board">${G.teams.map((t, i) => `<div style="--tc:${t.color}" class="${i === G.team && G.phase !== 'end' ? 'now' : ''}">${t.name}<b>${t.score}</b></div>`).join('')}</div>`;
 
   function render() {
@@ -152,7 +168,8 @@
       K.sound.whistle(); K._wantAwake = true; K.keepAwake(true);
       clearInterval(timer); timer = setInterval(() => {
         G.left--; if (G.left <= 5 && G.left > 0) K.sound.beep();
-        if (G.left <= 0) { clearInterval(timer); G.phase = 'after'; K.sound.end(); render(); return; }
+        // 시간이 끝날 때 화면에 있던 낱말은 버림 (그대로 두면 다음 팀의 첫 낱말로 다시 나옴)
+        if (G.left <= 0) { clearInterval(timer); G.idx++; G.phase = 'after'; K.sound.end(); render(); return; }
         const c = document.querySelector('.clock'); if (c) { c.textContent = G.left; c.classList.toggle('low', G.left <= 10); }
       }, 1000);
     } else if (a === 'ok') { G.log.push([word()[0], 1]); G.teams[G.team].score++; G.idx++; K.sound.pop(); }

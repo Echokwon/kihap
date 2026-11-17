@@ -8,6 +8,15 @@
   let rid = K.get('bus:route', ''), mode = 'edit';
   const route = () => R().find(r => r.id === rid);
   const rideKey = () => 'bus:ride:' + D.day() + ':' + rid;
+  // 퇴원 처리한 원생은 명단에 넣지 않음 (정류장 기록은 남겨 두어, 다시 ‘재원 중’으로 바꾸면 돌아옴)
+  const kid = id => { const s = D.student(id); return s && s.active !== false ? s : null; };
+  // 다른 화면(원생 관리 · 출석 체크)에서 기록이 바뀌면 새 내용으로 다시 그림
+  D.onChange((d, external) => { if (external) render(); });
+  // 지난 날의 탑승 체크는 일주일 뒤에 지움 (날마다 하나씩 쌓이기만 하지 않게)
+  try {
+    const old = new Date(); old.setDate(old.getDate() - 7); const cut = 'kihap:bus:ride:' + D.day(old);
+    Object.keys(localStorage).filter(k => k.startsWith('kihap:bus:ride:') && k.slice(0, cut.length) < cut).forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
 
   function renderTabs() {
     if (!route() && R().length) rid = R()[0].id;
@@ -31,7 +40,7 @@
   function edit(r) {
     const used = new Set(R().filter(x => x.id === r.id).flatMap(x => x.stops.flatMap(s => s.sids)));
     const studs = D.students(), free = studs.filter(s => !used.has(s.id));
-    const total = r.stops.reduce((a, s) => a + s.sids.length, 0);
+    const total = r.stops.reduce((a, s) => a + s.sids.filter(kid).length, 0);
     $('view').innerHTML = `
       <div class="box toolbar">
         <label class="field grow">운행 이름<input id="rName" value="${esc(r.name)}"></label>
@@ -50,7 +59,7 @@
             <button class="btn sm" data-mv="1" ${i < r.stops.length - 1 ? '' : 'disabled'} aria-label="아래로">${I('chevron-down')}</button>
             <button class="btn sm danger" data-rm aria-label="정류장 삭제">삭제</button>
           </div>
-          <div class="kids">${s.sids.map(id => D.student(id)).filter(Boolean).map(k => `<span class="kid">${esc(k.name)}<button data-out="${k.id}" aria-label="${esc(k.name)} 빼기">${I('x')}</button></span>`).join('')}
+          <div class="kids">${s.sids.map(kid).filter(Boolean).map(k => `<span class="kid">${esc(k.name)}<button data-out="${k.id}" aria-label="${esc(k.name)} 빼기">${I('x')}</button></span>`).join('')}
             ${free.length ? `<select data-add aria-label="아이 추가"><option value="">아이 추가…</option>${free.map(k => `<option value="${k.id}">${esc(k.name)}${k.cls ? ' (' + esc(D.className(k.cls)) + ')' : ''}</option>`).join('')}</select>` : ''}
           </div></div></div>`).join('')}
       </div>
@@ -69,7 +78,7 @@
       el.querySelector('.tm').onchange = e => { s.time = e.target.value; D.save(); };
       el.querySelector('.nm').onchange = e => { s.name = e.target.value.trim(); D.save(); };
       el.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => { const j = i + +b.dataset.mv; [r.stops[i], r.stops[j]] = [r.stops[j], r.stops[i]]; D.save(); render(); });
-      el.querySelector('[data-rm]').onclick = async () => { if (!s.sids.length || await K.confirm(`이 정류장의 아이 ${s.sids.length}명도 함께 빠져요. 지울까요?`, '지우기')) { r.stops.splice(i, 1); D.save(); render(); } };
+      el.querySelector('[data-rm]').onclick = async () => { const n = s.sids.filter(kid).length; if (!n || await K.confirm(`이 정류장의 아이 ${n}명도 함께 빠져요. 지울까요?`, '지우기')) { r.stops.splice(i, 1); D.save(); render(); } };
       el.querySelectorAll('[data-out]').forEach(b => b.onclick = () => { s.sids = s.sids.filter(x => x !== b.dataset.out); D.save(); render(); });
       const add = el.querySelector('[data-add]');
       if (add) add.onchange = () => { if (add.value) { s.sids.push(add.value); D.save(); render(); } };
@@ -80,31 +89,38 @@
   function drive(r) {
     const ride = K.get(rideKey(), {}), came = D.attendedOn();
     const isDrop = /하원/.test(r.name);   // 하원 운행이면 오늘 출석 안 한 아이 표시
-    const all = r.stops.flatMap(s => s.sids).filter(id => D.student(id));
+    // ‘오늘 결석’은 오늘 이 기기에서 출석 체크를 쓴 경우에만 따진다.
+    // 출석 기록이 하나도 없는 날(출석 화면을 안 쓰는 도장, 다른 기기)에는 전원을 그대로 보여 줌.
+    const useAtt = isDrop && Object.keys(came).length > 0;
+    const away = id => useAtt && !came[id];
+    const all = r.stops.flatMap(s => s.sids).filter(kid);
+    const need = all.filter(id => ride[id] || !away(id));     // 확인해야 할 아이 (결석이어도 직접 체크했으면 포함)
     const done = all.filter(id => ride[id]).length;
     $('view').innerHTML = `
       <div class="box" style="display:grid;gap:10px">
         <div class="toolbar"><h2 class="grow" style="font-size:1.6rem">${esc(r.name)} · ${D.day()}</h2>
           <button class="btn" id="reset">체크 지우기</button><button class="btn dark" id="back">편집으로</button></div>
-        <div class="progress"><i style="width:${all.length ? 100 * done / all.length : 0}%"></i></div>
-        <b>${isDrop ? '내림' : '탑승'} ${done} / ${all.length}명</b>
+        <div class="progress"><i style="width:${need.length ? 100 * done / need.length : 0}%"></i></div>
+        <b>${isDrop ? '내림' : '탑승'} ${done} / ${need.length}명${all.length > need.length ? ` <span class="muted">· 오늘 결석 ${all.length - need.length}명</span>` : ''}</b>
+        ${isDrop && !useAtt ? '<p class="hint">오늘 출석 체크 기록이 없어, 결석 표시 없이 전원을 보여 줍니다.</p>' : ''}
       </div>
       <div class="stops drive">${r.stops.map(s => {
-        const kids = s.sids.map(id => D.student(id)).filter(Boolean);
-        const fin = kids.length && kids.every(k => ride[k.id] || (isDrop && !came[k.id]));
+        const kids = s.sids.map(kid).filter(Boolean);
+        const fin = kids.length && kids.every(k => ride[k.id] || away(k.id));
         return `<div class="stop ${fin ? 'done' : ''}"><div class="stop-n"></div><div class="stop-body">
           <h3>${esc(s.time || '')} ${esc(s.name || '정류장')}</h3>
-          <div class="kids">${kids.map(k => `<button class="ride ${ride[k.id] ? 'on' : ''} ${isDrop && !came[k.id] ? 'away' : ''}" data-id="${k.id}">${ride[k.id] ? I('check') : ''}${esc(k.name)}${isDrop && !came[k.id] ? ' · 오늘 결석' : ''}</button>`).join('') || '<span class="muted">타는 아이 없음</span>'}
+          <div class="kids">${kids.map(k => `<button class="ride ${ride[k.id] ? 'on' : ''} ${away(k.id) ? 'away' : ''}" data-id="${k.id}">${ride[k.id] ? I('check') : ''}${esc(k.name)}${away(k.id) ? ' · 오늘 결석' : ''}</button>`).join('') || '<span class="muted">타는 아이 없음</span>'}
             ${kids.some(k => k.phone) ? `<span class="hint">${kids.filter(k => k.phone).map(k => `<a href="tel:${esc(k.phone)}">${I('phone')} ${esc(k.name)}</a>`).join(' · ')}</span>` : ''}</div>
         </div></div>`; }).join('')}
       </div>`;
     $('back').onclick = () => { mode = 'edit'; render(); };
     $('reset').onclick = async () => { if (await K.confirm('오늘 이 운행의 체크를 모두 지울까요?', '지우기')) { K.set(rideKey(), {}); render(); } };
     document.querySelectorAll('.ride').forEach(b => b.onclick = () => {
-      const v = K.get(rideKey(), {}); v[b.dataset.id] = !v[b.dataset.id]; if (!v[b.dataset.id]) delete v[b.dataset.id];
-      K.set(rideKey(), v); K.sound[v[b.dataset.id] ? 'pop' : 'tick'](); render();
-      const left = all.filter(id => !v[id] && !(isDrop && !came[id])).length;
-      if (!left && all.length) { K.sound.fanfare(); K.toast('모두 확인했습니다. 운행 완료'); }
+      const v = K.get(rideKey(), {}), on = !v[b.dataset.id];
+      if (on) v[b.dataset.id] = true; else delete v[b.dataset.id];
+      K.set(rideKey(), v); K.sound[on ? 'pop' : 'tick'](); render();
+      const left = all.filter(id => !v[id] && !away(id)).length;
+      if (on && !left) { K.sound.fanfare(); K.toast('모두 확인했습니다. 운행 완료'); }    // 체크를 푼 것으로는 완료가 되지 않음
     });
   }
 

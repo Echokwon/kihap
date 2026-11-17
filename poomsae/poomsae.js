@@ -2,7 +2,6 @@
 (function () {
   const K = Kihap, D = KihapDB, $ = id => document.getElementById(id), esc = K.esc;
   K.topbar('품새 채점', '', 'belt');
-  K.markLast('poomsae', '품새 채점');
 
   /* ---------- 채점 규칙 (점수는 0.1 단위 정수로 저장해서 소수 오차를 막음) ---------- */
   const RULES = {
@@ -23,9 +22,19 @@
   const f1 = n => (n / 10).toFixed(1), f2 = n => (Math.round(n * 100) / 100).toFixed(2);
 
   /* ---------- 상태 ---------- */
+  // 주소의 ?mode= 가 항상 우선 (홈의 ‘공인 품새’·‘자유 품새’ 타일이 각각 제 종목으로 열리게). 없을 때만 지난번에 쓰던 종목
   const qs = new URLSearchParams(location.search);
   let mode = qs.get('mode') === 'free' ? 'free' : (qs.get('mode') === 'std' ? 'std' : K.get('ps:mode', 'std'));
+  // 종목이 정해지거나 바뀔 때마다 적어 둠: 홈의 ‘이어서’ 버튼과 새로 고침이 지금 종목으로 돌아오도록
+  const markMode = () => {
+    K.set('ps:mode', mode);
+    mode === 'free' ? K.markLast('poomsae-free', '자유 품새 채점') : K.markLast('poomsae', '공인 품새 채점');
+    try { history.replaceState(null, '', '?mode=' + mode); } catch (e) {}
+  };
+  markMode();
   let P = null, tab = 'list', judge = 0, showMode = 'rank', showDiv = '', resDiv = '';
+  // 제출 버튼 잠금: 다른 채점표가 막 나타난 직후에는 잠깐 눌리지 않게 (RENDER.score 의 제출 부분 참고)
+  let sheetKey = '', submitFrom = 0;
   const load = () => { P = Object.assign({ judges: 3, list: [], cur: '' }, K.get('ps:' + mode, {})); };
   const save = () => K.set('ps:' + mode, P);
   load();
@@ -66,9 +75,10 @@
   function ranking(div) {
     const list = P.list.filter(c => div == null || (c.div || '') === div).map(c => ({ c, r: result(c) }));
     const done = list.filter(x => x.r.ready), wait = list.filter(x => !x.r.ready);
-    const tk = mode === 'std' ? 'pre' : 'tec', ok = mode === 'std' ? 'acc' : 'pre';
-    const key = x => [x.r.total, Math.round(x.r.parts[tk] * 100), Math.round(x.r.parts[ok] * 100)];
-    done.sort((a, b) => { const A = key(a), B = key(b); return B[0] - A[0] || B[1] - A[1] || B[2] - A[2]; });
+    // 순서는 화면에 적힌 규칙 그대로: 총점 → 동점이면 공인은 표현성·자유는 기술 → 그래도 같으면 공동 순위 (그 밖의 기준은 쓰지 않음)
+    const tk = mode === 'std' ? 'pre' : 'tec';
+    const key = x => [x.r.total, Math.round(x.r.parts[tk] * 100)];
+    done.sort((a, b) => { const A = key(a), B = key(b); return B[0] - A[0] || B[1] - A[1]; });
     done.forEach((x, i) => {
       const p = done[i - 1];
       x.rank = p && key(p).join() === key(x).join() ? p.rank : i + 1;
@@ -86,8 +96,7 @@
   }
   $('modeSeg').onclick = e => {
     const b = e.target.closest('[data-m]'); if (!b || b.dataset.m === mode) return;
-    mode = b.dataset.m; K.set('ps:mode', mode); load(); judge = 0; resDiv = ''; showDiv = '';
-    history.replaceState(null, '', '?mode=' + mode); renderAll();
+    mode = b.dataset.m; markMode(); load(); judge = 0; resDiv = ''; showDiv = ''; renderAll();
   };
   $('judgeN').onclick = e => { const c = e.target.closest('[data-n]'); if (!c) return; P.judges = +c.dataset.n; if (judge >= P.judges) judge = 0; save(); renderAll(); };
 
@@ -97,7 +106,8 @@
     tab = t;
     document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === t));
     document.querySelectorAll('.tabp').forEach(p => p.hidden = p.id !== 't-' + t);
-    RENDER[t]();
+    if (t === 'score') sheetKey = '';            // 채점 화면이 새로 나타남 → 제출 버튼을 잠깐 잠금
+    RENDER[t](true);                             // true = 사용자가 탭을 직접 연 것 (결과 발표의 등장 효과를 처음부터)
   }
   $('tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b) show(b.dataset.t); };
   function renderAll() { renderTop(); RENDER[tab](); }
@@ -127,7 +137,8 @@
       save(); const team = $('aTeam').value, div = $('aDiv').value; RENDER.list(); $('aTeam').value = team; $('aDiv').value = div; $('aName').focus();
     };
     $('aAdd').onclick = addOne;
-    $('aName').onkeydown = e => { if (e.key === 'Enter') addOne(); };
+    // 한글을 조합하는 중의 Enter 는 글자를 확정하는 것이라 건너뜀 (받으면 선수가 두 번 들어가거나 마지막 글자만 따로 들어감)
+    $('aName').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) addOne(); };
     $('aBulk').onclick = () => K.modal(`<h2>여러 명 한꺼번에</h2><p class="hint" style="margin:0">한 줄에 한 명: <b>이름, 소속, 부문</b> (엑셀에서 복사해도 돼요)</p>
       <label class="field">명단<textarea id="bT" rows="8" placeholder="김민준, 한빛 태권도, 초등부&#10;이서연, 바른 태권도, 초등부"></textarea></label>
       <div class="row" style="justify-content:flex-end"><button class="btn" data-close>취소</button><button class="btn primary" id="bGo">추가</button></div>`,
@@ -150,11 +161,15 @@
     if (!c) { el.innerHTML = `<div class="box empty"><b>${K.icon('clipboard-check', 'xl')}</b>‘선수 명단’에서 선수를 먼저 추가해 주세요.</div>`; return; }
     P.cur = c.id;
     const s = sheet(c, judge), jp = judgeParts(s), r = result(c), idx = P.list.indexOf(c);
-    const item = (grp, i, [name, min, max]) => `<div class="item"><span>${name}</span><button data-st="${grp},${i},-1" aria-label="${name} 0.1 내리기">−</button><b>${f1(s[grp][i])}</b><button data-st="${grp},${i},1" aria-label="${name} 0.1 올리기">+</button>
-      <input type="range" min="${min}" max="${max}" step="1" value="${s[grp][i]}" data-rg="${grp},${i}" aria-label="${name}"></div>`;
+    // 화면에 나온 채점표가 바뀌었으면(다른 선수·다른 심판·제출 상태가 바뀜) 제출 버튼을 0.6초 동안 받지 않음
+    const key = c.id + '/' + judge + '/' + s.done;
+    if (key !== sheetKey) { sheetKey = key; submitFrom = performance.now() + 600; }
+    const lock = s.done ? 'disabled' : '';       // 제출된 채점표는 ‘다시 고치기’를 누르기 전까지 잠가 둠
+    const item = (grp, i, [name, min, max]) => `<div class="item"><span>${name}</span><button data-st="${grp},${i},-1" aria-label="${name} 0.1 내리기" ${lock}>−</button><b>${f1(s[grp][i])}</b><button data-st="${grp},${i},1" aria-label="${name} 0.1 올리기" ${lock}>+</button>
+      <input type="range" min="${min}" max="${max}" step="1" value="${s[grp][i]}" data-rg="${grp},${i}" aria-label="${name}" ${lock}></div>`;
     const sheetHTML = mode === 'std' ? `
       <div class="comp"><div class="comp-head"><h3>정확성 <small class="muted">(4.0에서 빼기)</small></h3><b>${jp.acc.toFixed(1)}</b></div>
-        <div class="ded-btns"><button class="btn big" data-ded="1">작은 실수<br>−0.1</button><button class="btn big primary" data-ded="3">큰 실수<br>−0.3</button><button class="btn big" data-dedu ${s.d.length ? '' : 'disabled'} aria-label="실수 되돌리기">${K.icon('undo-2')}</button></div>
+        <div class="ded-btns"><button class="btn big" data-ded="1" ${lock}>작은 실수<br>−0.1</button><button class="btn big primary" data-ded="3" ${lock}>큰 실수<br>−0.3</button><button class="btn big" data-dedu ${s.d.length && !s.done ? '' : 'disabled'} aria-label="실수 되돌리기">${K.icon('undo-2')}</button></div>
         <div class="ded-log">${s.d.length ? `작은 실수 ${s.d.filter(x => x === 1).length}번 · 큰 실수 ${s.d.filter(x => x === 3).length}번` : '실수 없음'}</div></div>
       <div class="comp"><div class="comp-head"><h3>표현성 <small class="muted">(항목당 0.5~2.0)</small></h3><b>${jp.pre.toFixed(1)}</b></div>
         ${R().pre.map((x, i) => item('p', i, x)).join('')}</div>` : `
@@ -175,6 +190,7 @@
           ${sheetHTML}
           <div class="sheet-total"><span>심판 ${judge + 1} 합계 <b>${jTotal.toFixed(1)}</b></span>
             <button class="btn ${s.done ? '' : 'primary'} big" id="submit">${s.done ? K.icon('check') + '제출됨 · 다시 고치기' : '제출'}</button></div>
+          ${s.done ? '<p class="hint">제출된 채점표는 잠겨 있습니다. 점수를 바꾸려면 ‘다시 고치기’를 누르세요.</p>' : ''}
         </div>
         <div style="display:grid;gap:14px">
           ${mode === 'free' ? `<div class="box" style="display:grid;gap:8px"><h3 style="font-size:1.2rem">주심 감점 (선수 전체 점수에서 빼기)</h3>
@@ -199,6 +215,9 @@
     el.querySelectorAll('[data-cd]').forEach(b => b.onclick = () => { c.ded = c.ded || []; c.ded.push(+b.dataset.cd); save(); RENDER.score(); });
     const cdu = el.querySelector('[data-cdu]'); if (cdu) cdu.onclick = () => { c.ded.pop(); save(); RENDER.score(); };
     $('submit').onclick = () => {
+      // 채점표가 막 바뀐 직후의 클릭은 받지 않는다. ‘제출’을 빠르게 두 번 누르면 두 번째 클릭이 같은 자리에 새로 나타난
+      // 다음 심판의 ‘제출’(손대지 않은 기본 점수)이나 ‘다시 고치기’를 눌러 버리기 때문
+      if (performance.now() < submitFrom) return;
       s.done = !s.done; save();
       if (s.done) {
         K.sound.pop();
@@ -249,35 +268,47 @@
   };
 
   /* ================= 결과 발표 ================= */
-  RENDER.show = function () {
+  // 틀(도구 줄 + 무대)은 한 번만 만들고, 그 뒤에는 달라진 내용만 바꿔 넣는다.
+  // 무대(#stage)를 매번 새로 만들면 전체 화면이 풀리고 등장 효과가 처음부터 다시 돈다 (다른 탭에서 점수를 누를 때마다 그랬음)
+  const put = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
+  RENDER.show = function (reveal) {
     const el = $('t-show'), ds = divs();
     if (showDiv && !ds.includes(showDiv)) showDiv = '';
-    el.innerHTML = `
+    if (!$('stage')) {
+      el.innerHTML = `
       <div class="toolbar no-print">
-        <div class="seg"><button data-sm="rank" aria-selected="${showMode === 'rank'}">순위</button><button data-sm="cur" aria-selected="${showMode === 'cur'}">지금 선수 점수</button></div>
-        <select class="search" id="sDiv" style="width:auto" aria-label="부문">${['', ...ds].map(d => `<option value="${esc(d)}" ${d === showDiv ? 'selected' : ''}>${d ? esc(d) : '전체'}</option>`).join('')}</select>
+        <div class="seg"><button data-sm="rank">순위</button><button data-sm="cur">지금 선수 점수</button></div>
+        <select class="search" id="sDiv" style="width:auto" aria-label="부문"></select>
         <span class="grow"></span><button class="btn" id="sFs">${K.icon('maximize')}전체 화면</button>
       </div>
       <div class="show" id="stage"></div>`;
+      el.querySelectorAll('[data-sm]').forEach(b => b.onclick = () => { showMode = b.dataset.sm; RENDER.show(true); });
+      $('sDiv').onchange = e => { showDiv = e.target.value; RENDER.show(true); };
+      $('sFs').onclick = () => K.fullscreen($('stage'));
+    }
     const st = $('stage');
+    el.querySelectorAll('[data-sm]').forEach(b => b.setAttribute('aria-selected', b.dataset.sm === showMode));
+    put($('sDiv'), ['', ...ds].map(d => `<option value="${esc(d)}">${d ? esc(d) : '전체'}</option>`).join('')); $('sDiv').value = showDiv;
+    let html;
     if (showMode === 'rank') {
       const { done } = ranking(showDiv || null);
-      st.innerHTML = `<h2>${K.icon('trophy')}${esc(showDiv || R().name)} 결과</h2>` + (done.length
+      html = `<h2>${K.icon('trophy')}${esc(showDiv || R().name)} 결과</h2>` + (done.length
         ? `<div class="podium">${done.slice(0, 8).map((x, i) => `<div class="pod ${x.rank === 1 ? 'r1' : ''}" style="animation-delay:${(Math.min(done.length, 8) - i) * .25}s"><span class="rk ${x.rank <= 3 ? 'm' + x.rank : ''}">${x.rank}</span><span class="nm">${esc(x.c.name)}<small>${esc(x.c.team || '')}</small></span><span class="sc">${f2(x.r.total)}</span></div>`).join('')}</div>`
         : `<p style="text-align:center;opacity:.7">채점이 끝난 선수가 아직 없습니다</p>`);
     } else {
       const c = cur(), r = c && result(c);
-      st.innerHTML = c ? `<div class="cur-big"><div class="tm">${esc([c.team, c.div].filter(Boolean).join(' · ') || R().name)}</div><div class="nm">${esc(c.name)}</div>
+      html = c ? `<div class="cur-big"><div class="tm">${esc([c.team, c.div].filter(Boolean).join(' · ') || R().name)}</div><div class="nm">${esc(c.name)}</div>
         <div class="sc">${r.ready ? f2(r.total) : '채점 중'}</div>
         ${r.ready ? `<div class="parts">${R().parts.map(({ k, name }) => `<span>${name}<b>${f2(r.parts[k])}</b></span>`).join('')}${r.ded ? `<span>감점<b>−${r.ded.toFixed(1)}</b></span>` : ''}</div>` : `<div class="tm">${r.done} / ${r.N} 심판 제출</div>`}</div>`
         : `<p style="text-align:center">선수가 없습니다</p>`;
     }
-    el.querySelectorAll('[data-sm]').forEach(b => b.onclick = () => { showMode = b.dataset.sm; RENDER.show(); });
-    $('sDiv').onchange = e => { showDiv = e.target.value; RENDER.show(); };
-    $('sFs').onclick = () => K.fullscreen(st);
+    // 사용자가 직접 연 것(탭을 누름 · 순위/지금 선수 · 부문을 바꿈)이면 등장 효과를 보여 주고,
+    // 점수가 들어와서 내용만 달라진 것이면 효과 없이 조용히 바꿈. 달라진 것이 없으면 아무것도 건드리지 않음
+    if (reveal) st.classList.remove('still'); else if (html !== st._h) st.classList.add('still');
+    put(st, html);
   };
 
-  // 다른 탭에서 채점하면 결과 발표 화면도 바로 바뀌게
+  // 다른 탭에서 채점하면 결과 발표 화면도 바로 바뀌게 (발표 화면은 위에서처럼 달라진 내용만 바뀜)
   addEventListener('storage', e => { if (e.key === 'kihap:ps:' + mode) { load(); renderAll(); } });
 
   renderTop(); show('list');

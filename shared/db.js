@@ -17,20 +17,48 @@
     bus: { routes: [] }             // routes: {id,name,stops:[{id,name,time,sids:[]}]}
   });
 
-  let db = null;
+  const REV = 'db:rev';             // 저장할 때마다 1씩 올리는 번호 — 다른 화면이 그사이 저장했는지 알아내는 데 씀
+  let db = null, rev = 0;
+  // 모양이 틀린 항목(손으로 고친 백업 파일 등)은 빈 값으로 바꿔서 화면이 멈추지 않게
+  function fix(o) {
+    const e = empty();
+    if (!o || typeof o !== 'object' || Array.isArray(o)) o = e;
+    for (const k in e) if (o[k] == null || typeof o[k] !== typeof e[k] || Array.isArray(o[k]) !== Array.isArray(e[k])) o[k] = e[k];
+    if (!Array.isArray(o.bus.routes)) o.bus.routes = [];
+    o.bus.routes.forEach(r => { if (!Array.isArray(r.stops)) r.stops = []; r.stops.forEach(s => { if (!Array.isArray(s.sids)) s.sids = []; }); });
+    return o;
+  }
   function load() {
-    db = K.get(KEY, null) || empty();
-    const e = empty(); for (const k in e) if (db[k] == null) db[k] = e[k];
+    db = fix(K.get(KEY, null));
+    rev = K.get(REV, 0);
     return db;
   }
   const listeners = [];
+  // external = true 는 '다른 화면에서 바뀌어서 새로 읽었다'는 뜻
+  const notify = external => listeners.forEach(f => { try { f(db, external); } catch (e) {} });
   function save() {
-    K.set(KEY, db);
-    listeners.forEach(f => { try { f(db); } catch (e) {} });
+    const cur = K.get(REV, 0);
+    if (cur !== rev) {
+      // 이 화면이 읽은 뒤에 다른 화면이 저장했다. 여기서 그대로 저장하면 그쪽 기록(예: 그사이 출석)이 지워지므로
+      // 새 기록을 다시 읽고, 이 화면에서 방금 한 변경 하나만 포기한다.
+      load(); notify(true);
+      K.toast('다른 화면에서 바뀐 기록이 있어 새로 불러왔습니다. 방금 한 작업은 다시 해 주세요', 5000);
+      return false;
+    }
+    const ok = K.set(KEY, db);
+    if (ok) { rev = cur + 1; K.set(REV, rev); }
+    notify(false);
+    return ok;
   }
+  const reload = () => { load(); notify(true); };
   // 다른 탭(예: 출석 화면과 원생관리)에서 바뀌면 다시 읽기
-  addEventListener('storage', e => { if (e.key === 'kihap:' + KEY) { load(); listeners.forEach(f => f(db)); } });
+  addEventListener('storage', e => { if (e.key === 'kihap:' + KEY || e.key === null) reload(); });
+  // '뒤로'로 돌아온 화면은 예전에 읽어 둔 내용을 그대로 들고 있으므로 다시 읽기
+  addEventListener('pageshow', e => { if (e.persisted) reload(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && K.get(REV, 0) !== rev) reload(); });
 
+  // 백업 파일에 넣지 않는 것: 원생 데이터 자체(따로 담음), 기기마다 다른 설정, 그날만 쓰는 임시 기록
+  const NO_BACKUP = /^(db|db:rev|last|theme|mute|sb:state|draw:used|att:cam.*|bus:ride:.*)$/;
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const pad = n => String(n).padStart(2, '0');
   const day = (d = new Date()) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -41,7 +69,7 @@
     BELTS, BELT_COLORS, uid, day, ym, hm, pad,
     get data() { return db || load(); },
     save,
-    onChange(f) { listeners.push(f); },
+    onChange(f) { listeners.push(f); },      // f(data, external)
 
     /* 원생 */
     students(all) { const s = D.data.students; return (all ? s : s.filter(x => x.active !== false)).slice().sort((a, b) => a.name.localeCompare(b.name, 'ko')); },
@@ -90,18 +118,41 @@
     /* 띠 */
     promote(sid, belt, date = day()) { D.data.belts.push({ id: uid(), sid, belt, date }); const s = D.student(sid); if (s) s.belt = belt; save(); },
     beltHistory: sid => D.data.belts.filter(b => b.sid === sid).sort((a, b) => a.date.localeCompare(b.date)),
+    // 마지막 승급 한 번 되돌리기 (띠 기록의 마지막 줄을 지우고 그 전 띠로)
+    demote(sid) {
+      const h = D.beltHistory(sid); if (h.length < 2) return false;
+      const last = h[h.length - 1], prev = h[h.length - 2];
+      D.data.belts = D.data.belts.filter(b => b.id !== last.id);
+      const s = D.student(sid); if (s) s.belt = prev.belt;
+      save(); return true;
+    },
     beltChip(b) {
       const c = BELT_COLORS[b] || '#ccc', dark = ['흰띠', '노란띠'].includes(b);
       return `<span class="belt" style="--belt:${c};color:${dark ? '#222' : '#fff'}">${K.esc(b || '—')}</span>`;
     },
 
-    /* 백업 */
-    exportJSON() { return JSON.stringify(Object.assign({ exportedAt: new Date().toISOString(), app: 'kihap' }, D.data), null, 1); },
+    /* 백업 — 원생 데이터에 더해, 다른 화면의 기록(월간 계획표 · 품새 대회 · 달리기 순위 · 각종 설정)도 extras 에 함께 담음 */
+    exportJSON() {
+      const extras = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i); if (!k || !k.startsWith('kihap:')) continue;
+        const name = k.slice(6); if (!NO_BACKUP.test(name)) extras[name] = localStorage.getItem(k);
+      }
+      return JSON.stringify(Object.assign({ exportedAt: new Date().toISOString(), app: 'kihap' }, D.data, { extras }), null, 1);
+    },
     importJSON(text) {
       const o = JSON.parse(text);
       if (!o || !Array.isArray(o.students)) throw new Error('기합 백업 파일이 아니에요');
-      delete o.exportedAt; delete o.app; db = Object.assign(empty(), o); save();
+      const extras = o.extras;
+      delete o.exportedAt; delete o.app; delete o.extras;
+      db = fix(Object.assign(empty(), o)); rev = K.get(REV, 0); save();
+      if (extras && typeof extras === 'object') for (const name in extras) {
+        if (NO_BACKUP.test(name) || typeof extras[name] !== 'string') continue;
+        try { localStorage.setItem('kihap:' + name, extras[name]); } catch (e) {}
+      }
     },
+    // 엑셀이 '0001' 을 숫자 1 로 바꾸지 않게 (CSV 에 넣을 때만 씀)
+    xl: v => /^0\d+$/.test(String(v == null ? '' : v)) ? '="' + v + '"' : v,
     download(name, text, type = 'application/json') {
       const blob = new Blob([text], { type }), a = document.createElement('a');
       a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();

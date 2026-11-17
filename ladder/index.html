@@ -9,8 +9,8 @@
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" crossorigin>
 <link rel="stylesheet" href="../shared/base.css">
 <script src="../shared/core.js"></script>
 <script src="../shared/icons.js"></script>
@@ -19,6 +19,7 @@
   .game { display: grid; gap: 16px; }
   @media (min-width: 980px) { .game { grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); align-items: start; } }
   .game:fullscreen { background: var(--bg); padding: 20px; overflow: auto; }
+  .game:-webkit-full-screen { background: var(--bg); padding: 20px; overflow: auto; }   /* 옛 아이패드 */
 
   .board { position: relative; aspect-ratio: 6 / 5; width: 100%; display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(5, 1fr); gap: 4px; padding: 4px; border-radius: 12px; background: var(--navy); }
   .cell { position: relative; border-radius: 6px; background: var(--bg-2); display: grid; place-items: center; align-content: center; font-weight: 900; overflow: hidden; }
@@ -112,16 +113,20 @@
       ${Object.entries(LADDERS).map(([a, b]) => line(a, b, '#18995a', true)).join('')}${Object.entries(SLIDES).map(([a, b]) => line(a, b, '#d8323c', false)).join('')}</svg><div class="tokens" id="tokens"></div>`;
   }
 
-  let G = null, busy = false;
+  // gen: 게임 번호. 설정으로 나가거나 새로 시작하면 올려서, 굴리던 주사위·움직이던 말(wait 로 이어지는 흐름)이 새 게임을 건드리지 못하게 함
+  // hold: 버튼이 같은 자리에서 바뀐 직후 잠깐 누름을 받지 않는 동안의 타이머
+  let G = null, busy = false, gen = 0, hold = 0;
+  const drop = () => { gen++; busy = false; clearTimeout(hold); hold = 0; };
   $('start').onclick = () => {
     const missions = $('missions').value.split('\n').map(s => s.trim()).filter(Boolean);
     const nt = +document.querySelector('#nt .chip.on').dataset.v;
     Object.assign(cfg, { nt, missions: $('missions').value, failBack: $('failBack').checked }); K.set('lad:cfg', cfg);
+    drop();
     G = { missions: missions.length ? missions : DEF.split('\n'), turn: 0, phase: 'roll', over: false,
       teams: COLORS.slice(0, nt).map(([c, n]) => ({ color: c, name: n, at: 1 })) };
     $('setup').hidden = true; $('play').hidden = false; drawBoard(); render(); say(`${G.teams[0].name}부터 시작`, '주사위를 굴리세요');
   };
-  $('back').onclick = () => { $('play').hidden = true; $('setup').hidden = false; };
+  $('back').onclick = () => { drop(); $('play').hidden = true; $('setup').hidden = false; };
   $('fs').onclick = () => K.fullscreen($('game'));
 
   const say = (m, sub, ic) => $('msg').innerHTML = (ic ? I(ic) : '') + esc(m) + (sub ? `<small>${esc(sub)}</small>` : '');
@@ -136,7 +141,10 @@
       : G.phase === 'mission' ? `<button class="btn primary big" data-a="done" style="background:var(--green);border-color:var(--green)">${I('check')}미션 성공</button><button class="btn" data-a="fail">${I('x')}실패${cfg.failBack ? ' · 2칸 뒤로' : ''}</button>`
       : `<button class="btn primary big" data-a="roll" style="background:${T.color};border-color:${T.color}" ${busy ? 'disabled' : ''}>${I('dices')}${T.name} 주사위 굴리기</button>`;
   }
-  const wait = ms => new Promise(r => setTimeout(r, ms));
+  // 기다리는 사이에 게임이 바뀌면 끝내 풀리지 않음 → 그 뒤에 이어질 옛 게임의 동작(말 옮기기·차례 넘기기)이 실행되지 않음
+  const wait = ms => new Promise(r => { const g = gen; setTimeout(() => { if (g === gen) r(); }, ms); });
+  // 미션 성공을 두 번 눌러 다음 팀 주사위까지 굴리거나, 주사위를 연달아 누르다 미션·다시 하기를 눌러 버리지 않게 0.5초 쉼
+  const rest = () => { clearTimeout(hold); hold = setTimeout(() => { hold = 0; }, 500); };
   async function move(t, to) { const step = to > t.at ? 1 : -1; while (t.at !== to) { t.at += step; render(); K.sound.tick(); await wait(220); } }
 
   async function roll() {
@@ -151,22 +159,23 @@
     busy = false; render();
   }
   async function land(t) {
-    if (t.at >= N) { G.over = true; say(`${t.name} 도착 · 승리`, '', 'trophy'); K.sound.end(); setTimeout(() => K.sound.fanfare(), 900); return; }
+    if (t.at >= N) { G.over = true; rest(); say(`${t.name} 도착 · 승리`, '', 'trophy'); K.sound.end(); setTimeout(() => K.sound.fanfare(), 900); return; }
     if (LADDERS[t.at]) { say('사다리 — 위로 올라갑니다', `${t.at}칸에서 ${LADDERS[t.at]}칸으로`, 'ladder'); K.sound.fanfare(); await wait(600); await move(t, LADDERS[t.at]); return next(); }
     if (SLIDES[t.at]) { say('미끄럼틀 — 아래로 내려갑니다', `${t.at}칸에서 ${SLIDES[t.at]}칸으로`, 'chevron-down'); K.sound.boom(); await wait(600); await move(t, SLIDES[t.at]); return next(); }
-    if (MISSION.includes(t.at)) { G.phase = 'mission'; const m = G.missions[K.randInt(0, G.missions.length - 1)]; say(`미션: ${m}`, `${t.name} 모두 함께`, 'dumbbell'); K.sound.whistle(); return; }
+    if (MISSION.includes(t.at)) { G.phase = 'mission'; rest(); const m = G.missions[K.randInt(0, G.missions.length - 1)]; say(`미션: ${m}`, `${t.name} 모두 함께`, 'dumbbell'); K.sound.whistle(); return; }
     if (STAR.includes(t.at)) { say('한 번 더', `${t.name} 다시 굴리세요`, 'star'); K.sound.pop(); return; }
     next();
   }
-  function next() { G.turn = (G.turn + 1) % G.teams.length; G.phase = 'roll'; const t = team(); setTimeout(() => { if (!G.over && !busy) say(`${t.name} 차례`, '주사위를 굴리세요'); }, 900); }
+  function next() { G.turn = (G.turn + 1) % G.teams.length; G.phase = 'roll'; const t = team(), g = gen; setTimeout(() => { if (g === gen && !G.over && !busy) say(`${t.name} 차례`, '주사위를 굴리세요'); }, 900); }
 
   $('acts').addEventListener('click', async e => {
     const b = e.target.closest('[data-a]'); if (!b) return;
     const a = b.dataset.a, t = team();
+    if (hold) return;
     if (a === 'roll') roll();
     else if (a === 'again') $('start').click();
-    else if (a === 'done') { K.sound.pop(); say('미션 성공', '', 'check'); next(); render(); }
-    else if (a === 'fail') { G.phase = 'roll'; busy = true; render(); if (cfg.failBack) await move(t, Math.max(1, t.at - 2)); busy = false; next(); render(); }
+    else if (a === 'done') { rest(); K.sound.pop(); say('미션 성공', '', 'check'); next(); render(); }
+    else if (a === 'fail') { rest(); G.phase = 'roll'; busy = true; render(); if (cfg.failBack) await move(t, Math.max(1, t.at - 2)); busy = false; next(); render(); }
   });
 })();
 </script>

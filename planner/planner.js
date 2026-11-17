@@ -12,8 +12,12 @@
   const blank = () => ({ title: '수업 계획', days: {}, tags: {}, goal: '', notice: '' });
   const getPlan = m => Object.assign(blank(), K.get(key(m), {}));
   let plan = getPlan(month);
-  let saveT = null;
-  const save = () => { clearTimeout(saveT); saveT = setTimeout(() => K.set(key(month), plan), 300); };
+  let saveT = null, dirty = false;
+  // 밀린 저장을 지금 함 (달을 바꾸거나 화면을 떠날 때). 아무것도 안 고친 달은 빈 기록을 남기지 않음
+  const flush = () => { clearTimeout(saveT); if (dirty) { K.set(key(month), plan); dirty = false; } };
+  const save = () => { dirty = true; clearTimeout(saveT); saveT = setTimeout(flush, 300); };
+  addEventListener('pagehide', flush);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
 
   $('themes').innerHTML = THEMES.map(([v, n]) => `<button class="chip" data-v="${v}">${n}</button>`).join('');
   function setTheme(v) { K.set('plan:theme', v); $('sheet').dataset.theme = v; document.querySelectorAll('#themes .chip').forEach(c => c.classList.toggle('on', c.dataset.v === v)); }
@@ -35,7 +39,7 @@
     }
     $('sheet').innerHTML = `
       <div class="sh-head"><div class="sh-month">${m}<small>월</small></div>
-        <div style="flex:1;display:grid"><div class="sh-dojo" contenteditable="plaintext-only" data-f="dojo" spellcheck="false">${esc(D.data.dojo || '우리 도장')} · ${y}</div>
+        <div style="flex:1;display:grid"><div class="sh-dojo" title="도장 이름은 원생 관리 › 반 · 설정에서 바꿉니다">${esc(D.data.dojo || '우리 도장')} · ${y}</div>
         <div class="sh-title" contenteditable="plaintext-only" data-f="title" spellcheck="false">${esc(plan.title)}</div></div>
         <div class="legend">${TAGS.slice(1).map(([n, c]) => `<span style="background:${c}">${n}</span>`).join('')}</div></div>
       <div class="cal">${html}</div>
@@ -51,7 +55,6 @@
     const el = e.target.closest('[contenteditable]'); if (!el) return;
     const v = el.innerText.replace(/\n$/, '');
     if (el.dataset.k) plan.days[el.dataset.k] = v;
-    else if (el.dataset.f === 'dojo') return;    // 도장 이름은 원생 관리 설정에서
     else plan[el.dataset.f] = v;
     save();
   });
@@ -63,10 +66,10 @@
     save();
   });
 
-  function go(m) { K.set(key(month), plan); month = m; plan = getPlan(month); render(); fixCE(); }
+  function go(m) { flush(); month = m; plan = getPlan(month); render(); fixCE(); }
   const shift = n => { const [y, m] = month.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); go(D.ym(d)); };
   $('prev').onclick = () => shift(-1); $('next').onclick = () => shift(1);
-  $('month').onchange = e => e.target.value && go(e.target.value);
+  $('month').onchange = e => { if (/^\d{4}-(0[1-9]|1[0-2])$/.test(e.target.value)) go(e.target.value); else e.target.value = month; };
 
   $('copyPrev').onclick = async () => {
     const [y, m] = month.split('-').map(Number), pm = D.ym(new Date(y, m - 2, 1)), p = getPlan(pm);
@@ -83,7 +86,7 @@
     plan.goal = plan.goal || p.goal; save(); render(); fixCE(); K.toast('복사했습니다');
   };
 
-  $('print').onclick = () => { K.set(key(month), plan); print(); };
+  $('print').onclick = () => { flush(); print(); };
   $('png').onclick = async () => {
     K.toast('이미지 만드는 중…');
     try {

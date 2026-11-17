@@ -1,8 +1,16 @@
 /* 기합 — 수업 도구 8가지 */
 (function () {
   const K = Kihap, $ = id => document.getElementById(id), now = () => performance.now();
-  const num = (id, min, max, def) => { let v = parseFloat($(id).value); if (!isFinite(v)) v = def; return Math.min(max, Math.max(min, v)); };
   const awake = () => { K._wantAwake = true; K.keepAwake(true); };
+  // 이름 명단 읽기 (줄바꿈·쉼표로 나눔). 같은 이름이 또 나오면 합치지 않고 "김민준 2" 처럼 번호를 붙여 모두 남김
+  const nameList = text => {
+    const raw = text.split(/[\n,]/).map(s => s.trim()).filter(Boolean), all = new Set(raw), seen = new Set();
+    return raw.map(n => {
+      let v = n;
+      if (seen.has(v)) { let k = 2; while (seen.has(v = `${n} ${k}`) || all.has(v)) k++; }   // 명단에 원래 적힌 이름과도 겹치지 않게
+      seen.add(v); return v;
+    });
+  };
 
   const TOOLS = [
     { id: 'timer', ic: 'timer', name: '타이머', go: 'timerGo' },
@@ -34,11 +42,20 @@
   }
   addEventListener('hashchange', route);
 
-  // 스페이스바 = 지금 도구의 시작 버튼
+  // 스페이스바 = 지금 도구의 시작 버튼.
+  // 글자를 넣는 중이거나, 키보드로 고른 버튼 위(브라우저가 그 버튼을 눌러 줌)이거나, 확인 창이 떠 있으면 끼어들지 않음
   addEventListener('keydown', e => {
-    if (e.code !== 'Space' || /INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)) return;
-    const t = TOOLS.find(x => x.id === cur);
-    if (t && t.go) { e.preventDefault(); $(t.go).click(); }
+    if (e.code !== 'Space' || K.typing() || document.querySelector('.modal-back')) return;
+    const a = document.activeElement, t = TOOLS.find(x => x.id === cur);
+    if ((a && a.tagName === 'BUTTON') || !t || !t.go) return;
+    e.preventDefault();                 // 화면이 아래로 밀리지 않게
+    if (!e.repeat) $(t.go).click();     // 꾹 누르고 있어도 한 번만
+  });
+  // 마우스·손가락으로 바꾼 체크칸에 초점이 남으면 그다음 스페이스바가 시작 대신 체크를 뒤집음 → 초점을 풀어 줌 (키보드로 고른 칸은 그대로)
+  document.addEventListener('change', e => {
+    const t = e.target; let byKey = true;
+    try { byKey = t.matches(':focus-visible'); } catch (err) {}   // 옛 브라우저는 구분할 수 없으니 그대로 둠
+    if (t.type === 'checkbox' && t === document.activeElement && !byKey) t.blur();
   });
 
   const syncBtns = () => { $('muteBtn').innerHTML = K.icon(K.muted() ? 'volume-x' : 'volume-2'); $('themeBtn').innerHTML = K.icon(K.isDark() ? 'sun' : 'moon'); };
@@ -61,6 +78,7 @@
     const C = 2 * Math.PI * 90, ring = $('timerRing'), stage = $('timerStage');
     ring.style.strokeDasharray = C;
     let total = K.get('timer:total', 60000), remain = total, running = false, endAt = 0, iv = null, lastSec = null;
+    let dirty = false;   // 분·초 칸을 고쳤는데 아직 타이머에 반영하지 않았는지
     const PRESETS = [[10, '10초'], [30, '30초'], [60, '1분'], [120, '2분'], [180, '3분'], [300, '5분'], [600, '10분']];
     $('timerPresets').innerHTML = PRESETS.map(([s, l]) => `<button class="chip" data-v="${s}">${l}</button>`).join('');
     chipGroup('timerPresets', v => setTotal(+v * 1000));
@@ -71,10 +89,20 @@
       stage.classList.toggle('warn', running && remain <= 10000);
       $('timerGo').textContent = running ? '멈춤' : (remain < total && remain > 0 ? '계속' : '시작');
     }
+    function syncFields() {   // 분·초 칸과 빠른 선택 표시를 지금 시간에 맞춤
+      dirty = false; $('timerMin').value = Math.floor(total / 60000); $('timerSec').value = Math.floor(total / 1000) % 60;
+      document.querySelectorAll('#timerPresets .chip').forEach(c => c.classList.toggle('on', +c.dataset.v * 1000 === total));
+    }
     function setTotal(ms) {
       stop(); total = Math.max(1000, ms); remain = total; K.set('timer:total', total);
-      $('timerMin').value = Math.floor(total / 60000); $('timerSec').value = Math.floor(total / 1000) % 60;
-      stage.classList.remove('flash'); render();
+      syncFields(); stage.classList.remove('flash'); render();
+    }
+    // 칸에 적힌 시간을 타이머에 반영. 빈칸은 0 으로 봄 (분을 비우고 초에 30 → 0:30), 초가 59 를 넘으면 분으로 올림.
+    // 합쳐서 0초면 반영하지 않고 칸만 지금 시간으로 되돌림
+    function applyFields() {
+      const s = Math.min(5999, Math.round(K.num('timerMin', 0, 99, 0) * 60 + K.num('timerSec', 0, 5999, 0)));
+      if (s > 0) setTotal(s * 1000); else syncFields();
+      return s > 0;
     }
     function tick() {
       remain = endAt - now();
@@ -83,29 +111,41 @@
       if (remain <= 0) { remain = 0; stop(); K.sound.end(); stage.classList.remove('flash'); void stage.offsetWidth; stage.classList.add('flash'); }
       render();
     }
-    function start() { if (remain <= 0) remain = total; running = true; endAt = now() + remain; lastSec = null; stage.classList.remove('flash'); iv = setInterval(tick, 100); awake(); K.sound.pop(); render(); }
+    function start() {
+      // 칸을 고치고 '시간 맞추기'를 누르지 않았어도 칸에 보이는 시간으로 시작 (잠깐 멈춘 중이면 하던 것을 이어감)
+      if (dirty && !(remain > 0 && remain < total)) applyFields();
+      if (remain <= 0) remain = total; running = true; endAt = now() + remain; lastSec = null; stage.classList.remove('flash'); iv = setInterval(tick, 100); awake(); K.sound.pop(); render();
+    }
     function stop() { running = false; clearInterval(iv); render(); }
     $('timerGo').onclick = () => running ? stop() : start();
-    $('timerReset').onclick = () => { stop(); remain = total; stage.classList.remove('flash'); render(); };
-    $('timerSet').onclick = () => setTotal((num('timerMin', 0, 99, 1) * 60 + num('timerSec', 0, 59, 0)) * 1000);
+    $('timerReset').onclick = () => { if (dirty && applyFields()) return; stop(); remain = total; stage.classList.remove('flash'); render(); };
+    $('timerSet').onclick = () => { if (!applyFields()) K.toast('시간을 1초 이상으로 맞춰 주세요'); };
+    ['timerMin', 'timerSec'].forEach(id => {
+      $(id).addEventListener('input', () => { dirty = true; });
+      $(id).addEventListener('keydown', e => { if (e.key === 'Enter') $('timerSet').click(); });   // 칸에서 엔터 = 시간 맞추기
+    });
     setTotal(total);
   })();
 
   /* ================= 인터벌 ================= */
   (function () {
-    const stage = $('ivStage');
+    const stage = $('ivStage'), FIELDS = ['ivPrep', 'ivWork', 'ivRest', 'ivRounds'];
     const NAMES = { prep: '준비', work: '운동', rest: '휴식', done: '수고했습니다' };
     const PRESETS = [['타바타', 10, 20, 10, 8], ['30/30 ×6', 10, 30, 30, 6], ['40/20 ×5', 10, 40, 20, 5], ['1분/30초 ×5', 10, 60, 30, 5]];
     $('ivPresets').innerHTML = PRESETS.map((p, i) => `<button class="chip" data-v="${i}">${p[0]}</button>`).join('');
-    chipGroup('ivPresets', i => { const p = PRESETS[i]; ['ivPrep', 'ivWork', 'ivRest', 'ivRounds'].forEach((id, k) => $(id).value = p[k + 1]); reset(); });
+    chipGroup('ivPresets', i => { const p = PRESETS[i]; FIELDS.forEach((id, k) => $(id).value = p[k + 1]); reset(); });
 
     const saved = K.get('iv:cfg', null);
-    if (saved) ['ivPrep', 'ivWork', 'ivRest', 'ivRounds'].forEach((id, k) => $(id).value = saved[k]);
+    if (saved) FIELDS.forEach((id, k) => $(id).value = saved[k]);
 
     let plan = [], idx = 0, remain = 0, running = false, endAt = 0, iv = null, lastSec = null;
     function build() {
-      const prep = num('ivPrep', 0, 300, 10), work = num('ivWork', 1, 3600, 20), rest = num('ivRest', 0, 3600, 10), R = Math.round(num('ivRounds', 1, 99, 8));
-      K.set('iv:cfg', [prep, work, rest, R]);
+      const cfg = [K.num('ivPrep', 0, 300, 10), K.num('ivWork', 1, 3600, 20), K.num('ivRest', 0, 3600, 10), Math.round(K.num('ivRounds', 1, 99, 8))];
+      const [prep, work, rest, R] = cfg;
+      // 빈칸이거나 범위를 벗어난 칸에는 실제로 쓰는 값을 다시 적어 둠 (칸에 보이는 것과 실제로 도는 것이 다르지 않게)
+      FIELDS.forEach((id, k) => { if ($(id).value !== String(cfg[k])) $(id).value = cfg[k]; });
+      document.querySelectorAll('#ivPresets .chip').forEach((c, i) => c.classList.toggle('on', cfg.every((v, k) => v === PRESETS[i][k + 1])));
+      K.set('iv:cfg', cfg);
       plan = [];
       if (prep > 0) plan.push({ type: 'prep', dur: prep * 1000, round: 0 });
       for (let r = 1; r <= R; r++) {
@@ -139,18 +179,20 @@
       if (remain <= 0) enter(idx + 1);
       render();
     }
+    // 도는 중에는 칸을 잠금: 그때 고친 값은 지금 판에 반영되지 않아 칸과 실제가 어긋나기 때문 (멈추면 풀리고, 고치면 처음부터 다시 짬)
+    const lock = on => FIELDS.forEach(id => { $(id).disabled = on; });
     function start() {
       if (!plan[idx]) reset();
       const fresh = idx === 0 && remain === plan[0].dur;
-      running = true; iv = setInterval(tick, 100); awake();
+      running = true; lock(true); iv = setInterval(tick, 100); awake();
       if (fresh) enter(0); else endAt = now() + remain;
       render();
     }
-    function stop() { running = false; clearInterval(iv); render(); }
+    function stop() { running = false; lock(false); clearInterval(iv); render(); }
     function reset() { stop(); build(); idx = 0; remain = plan[0].dur; render(); }
     $('ivGo').onclick = () => running ? stop() : start();
     $('ivReset').onclick = reset;
-    ['ivPrep', 'ivWork', 'ivRest', 'ivRounds'].forEach(id => $(id).addEventListener('change', () => { if (!running) reset(); }));
+    FIELDS.forEach(id => $(id).addEventListener('change', () => { if (!running) reset(); }));
     reset();
   })();
 
@@ -229,7 +271,7 @@
     const TEAM_COLORS = ['#d8323c', '#2457c5', '#18995a', '#e8a500', '#8a3ffc', '#0f8b8d', '#c2410c', '#be185d', '#475569', '#65a30d'];
     $('drawNames').value = K.get('draw:names', '');
     let used = new Set(K.get('draw:used', [])), busy = false;
-    const names = () => [...new Set($('drawNames').value.split(/[\n,]/).map(s => s.trim()).filter(Boolean))];
+    const names = () => nameList($('drawNames').value);
     const saveUsed = () => K.set('draw:used', [...used]);
     function info() {
       const all = names(), left = all.filter(n => !used.has(n)).length;
@@ -242,10 +284,13 @@
     $('drawGo').onclick = () => {
       if (busy) return;
       const all = names(); if (!all.length) { K.toast('이름을 먼저 넣어 주세요'); $('drawNames').focus(); return; }
-      const noRep = $('drawNoRepeat').checked;
-      let pool = noRep ? all.filter(n => !used.has(n)) : all;
-      if (!pool.length) { used.clear(); saveUsed(); pool = all; K.toast('모두 한 번씩 뽑혔습니다. 처음부터 다시 뽑습니다'); }
-      const n = Math.min(Math.round(num('drawN', 1, 50, 1)), pool.length);
+      const noRep = $('drawNoRepeat').checked, n = Math.min(Math.round(K.num('drawN', 1, 50, 1)), all.length);
+      let pool = noRep ? all.filter(x => !used.has(x)) : all;
+      // 아직 안 뽑힌 사람이 뽑을 인원보다 적으면 기록을 지우고 전체에서 다시 뽑음 (늘 정한 인원만큼 나오게)
+      if (pool.length < n) {
+        K.toast(pool.length ? `안 뽑힌 사람이 ${pool.length}명뿐이라 처음부터 다시 뽑습니다` : '모두 한 번씩 뽑혔습니다. 처음부터 다시 뽑습니다');
+        used.clear(); saveUsed(); pool = all;
+      }
       const winners = K.shuffle(pool).slice(0, n);
       const show = $('drawShow'); $('drawTeams').innerHTML = ''; busy = true;
       let step = 0; const steps = 18;
@@ -261,7 +306,8 @@
     };
 
     $('teamGo').onclick = () => {
-      const all = names(); const T = Math.round(num('teamN', 2, 10, 2));
+      if (busy) return;   // 뽑기가 도는 중에는 기다림 (뽑힌 이름과 팀 목록이 한 화면에 뒤섞이지 않게)
+      const all = names(); const T = Math.round(K.num('teamN', 2, 10, 2));
       if (all.length < T) { K.toast(`팀 ${T}개를 만들려면 ${T}명 이상 필요합니다`); return; }
       const teams = Array.from({ length: T }, () => []);
       K.shuffle(all).forEach((n, i) => teams[i % T].push(n));
@@ -278,10 +324,16 @@
     $('brNames').addEventListener('input', () => K.set('br:names', $('brNames').value));
     let rounds = [];
     const roundName = m => m === 1 ? '결승' : m === 2 ? '준결승' : (m * 2) + '강';
+    const save = () => K.set('br:rounds', rounds);   // 바뀔 때마다 저장: 새로 고치거나 다른 화면에 다녀와도 대진표가 남게
+    const champion = () => rounds.length ? rounds[rounds.length - 1][0].w : null;
+    // 사람이 직접 고른 결과가 하나라도 있는지 (부전승으로 저절로 올라간 것은 빼고)
+    const hasResults = () => rounds.some((ms, r) => ms.some(m => m.w != null && (r > 0 || (m.a != null && m.b != null))));
 
-    function make() {
-      let list = [...new Set($('brNames').value.split(/[\n,]/).map(s => s.trim()).filter(Boolean))];
+    async function make() {
+      let list = nameList($('brNames').value);
       if (list.length < 2) { K.toast('2명 이상 넣어 주세요'); return; }
+      // 결과가 들어간 대진표를 실수로 날리지 않게 한 번 물어봄
+      if (hasResults() && !(await K.confirm('지금 대진표와 경기 결과가 지워집니다. 새로 만들까요?', '새로 만들기'))) return;
       if (list.length > 64) { K.toast('64명까지 넣을 수 있습니다'); list = list.slice(0, 64); }
       if ($('brShuffle').checked) list = K.shuffle(list);
       let size = 1; while (size < list.length) size *= 2;
@@ -291,14 +343,15 @@
       for (let i = 0; i < size / 2; i++) first.push({ a: slots[i], b: slots[size - 1 - i], w: null });
       rounds = [first];
       for (let m = size / 4; m >= 1; m /= 2) rounds.push(Array.from({ length: m }, () => ({ a: null, b: null, w: null })));
-      recompute(); render();
+      recompute(); save(); render();
     }
     function recompute() {
       rounds[0].forEach(m => { if (m.a == null || m.b == null) m.w = m.a == null ? m.b : m.a; });  // 부전승
       for (let r = 1; r < rounds.length; r++) rounds[r].forEach((m, i) => {
-        m.a = rounds[r - 1][2 * i].w; m.b = rounds[r - 1][2 * i + 1].w;
-        if (m.w != null && m.w !== m.a && m.w !== m.b) m.w = null;
-        if (m.a == null || m.b == null) m.w = null;
+        const a = rounds[r - 1][2 * i].w, b = rounds[r - 1][2 * i + 1].w;
+        // 올라온 두 사람 중 한 명이라도 바뀌면 그 판은 다시 해야 하므로 결과를 지움 (아랫판을 고쳤는데 윗판 결과가 남지 않게)
+        if (a !== m.a || b !== m.b || a == null || b == null) m.w = null;
+        m.a = a; m.b = b;
       });
     }
     function btn(m, r, i, side) {
@@ -309,21 +362,27 @@
       return `<button class="${cls}" data-r="${r}" data-i="${i}" data-s="${side}" ${bye || other == null ? 'disabled' : ''}>${K.esc(v)}</button>`;
     }
     function render() {
-      $('bracket').innerHTML = rounds.map((ms, r) => `<div class="round"><h3>${roundName(ms.length)}</h3>${ms.map((m, i) => `<div class="match">${btn(m, r, i, 'a')}${btn(m, r, i, 'b')}</div>`).join('')}</div>`).join('');
-      const champ = rounds.length && rounds[rounds.length - 1][0].w;
+      $('brBoard').innerHTML = rounds.map((ms, r) => `<div class="round"><h3>${roundName(ms.length)}</h3>${ms.map((m, i) => `<div class="match">${btn(m, r, i, 'a')}${btn(m, r, i, 'b')}</div>`).join('')}</div>`).join('');
+      const champ = champion();
       $('champ').hidden = !champ;
       if (champ) $('champ').innerHTML = `${K.icon('trophy', 'xl')}<span>${K.esc(champ)}</span><small>우승</small>`;
     }
-    $('bracket').addEventListener('click', e => {
+    $('brBoard').addEventListener('click', e => {
       const b = e.target.closest('button[data-r]'); if (!b) return;
       const m = rounds[+b.dataset.r][+b.dataset.i], v = m[b.dataset.s];
-      const before = rounds[rounds.length - 1][0].w;
+      const before = champion();
       m.w = m.w === v ? null : v;
-      recompute(); render();
-      const after = rounds[rounds.length - 1][0].w;
-      if (after && !before) K.sound.fanfare(); else K.sound.pop();
+      recompute(); save(); render();
+      if (champion() && !before) {
+        K.sound.fanfare();
+        // 우승 알림은 대진표 맨 위에 있어서, 큰 대진표나 작은 화면에서는 결승을 누른 자리에서 안 보임 → 보이는 곳으로 옮겨 줌 (이미 보이면 세로로는 움직이지 않음)
+        $('champ').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest', inline: 'center' });
+      } else K.sound.pop();
     });
     $('brMake').onclick = make;
+    // 저장해 둔 대진표 되살리기 (모양이 맞을 때만)
+    const old = K.get('br:rounds', null);
+    if (Array.isArray(old) && old.length && old.every((ms, r) => Array.isArray(ms) && ms.length === old[0].length >> r && ms.every(m => m && typeof m === 'object')) && old[old.length - 1].length === 1) { rounds = old; recompute(); render(); }
   })();
 
   /* ================= 반응 신호 ================= */
@@ -358,7 +417,7 @@
       schedule(next);
     }
     function schedule(fn) {
-      let a = num('sigMin', .5, 30, 1.5), b = num('sigMax', .5, 30, 4); if (b < a) [a, b] = [b, a];
+      let a = K.num('sigMin', .5, 30, 1.5), b = K.num('sigMax', .5, 30, 4); if (b < a) [a, b] = [b, a];
       to = setTimeout(fn, K.rand(a, b) * 1000);
     }
     function start() {
@@ -395,7 +454,7 @@
       $('bombGo').textContent = '다시 불 붙이기';
     }
     function light() {
-      let a = num('bombMin', 3, 300, 10), b = num('bombMax', 3, 300, 30); if (b < a) [a, b] = [b, a];
+      let a = K.num('bombMin', 3, 300, 10), b = K.num('bombMax', 3, 300, 30); if (b < a) [a, b] = [b, a];
       dur = K.rand(a, b) * 1000; startT = now(); lit = true; stage.dataset.st = 'lit'; awake();
       msg('불이 붙었습니다. 계속 넘기세요'); $('bombGo').textContent = '타는 중'; tickLoop();
     }

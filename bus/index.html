@@ -9,8 +9,8 @@
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" crossorigin>
 <link rel="stylesheet" href="../shared/base.css">
 <script src="../shared/core.js"></script>
 <script src="../shared/icons.js"></script>
@@ -43,9 +43,18 @@
   .progress i { display: block; height: 100%; background: var(--green); transition: width .2s; }
 
   @media print {
-    .stop { break-inside: avoid; border: 1px solid #999; }
-    .stop-head input { border: 0; padding: 0; }
+    .page { padding: 0; }
+    .stop { break-inside: avoid; border: 1px solid #999; background: none; }
+    .stop-head input { border: 0; padding: 0; background: none; }
+    .kid { background: none; border: 1px solid #bbb; padding: 2px 8px; }
     .kid button, .kids select, .stop .btn { display: none !important; }
+    /* 정류장 번호: 브라우저는 배경색을 기본으로 인쇄하지 않으므로 테두리와 검은 글자로 */
+    .stop-n { background: none; color: #000; border: 2px solid #000; }
+    /* 운행 이름은 제목처럼, 버튼은 빼고 */
+    .box.toolbar { border: 0; padding: 0; background: none; }
+    .box.toolbar .btn { display: none !important; }
+    .box.toolbar .field { color: #000; }
+    .box.toolbar input { border: 0; padding: 0; min-height: 0; background: none; font-size: 1.5rem; font-weight: 800; }
   }
 </style>
 </head>

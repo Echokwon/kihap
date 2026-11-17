@@ -9,8 +9,8 @@
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" crossorigin>
 <link rel="stylesheet" href="../shared/base.css">
 <script src="../shared/core.js"></script>
 <script src="../shared/icons.js"></script>
@@ -18,6 +18,8 @@
 <style>
   .att-grid { display: grid; gap: 14px; }
   @media (min-width: 960px) { .att-grid.split { grid-template-columns: 1.3fr 1fr; align-items: start; } }
+  /* 휴대폰: 긴 카메라 이름 · 원생 이름이 든 선택 칸이 화면을 옆으로 밀어내지 않게 */
+  .att-grid > *, .att-grid .box > *, .att-grid .field, .att-grid .field > * { min-width: 0; }
 
   /* 번호 키패드 */
   .kiosk { display: grid; gap: 14px; justify-items: center; padding: 22px 16px; }

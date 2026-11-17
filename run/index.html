@@ -9,8 +9,8 @@
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" crossorigin>
 <link rel="stylesheet" href="../shared/base.css">
 <script src="../shared/core.js"></script>
 <script src="../shared/icons.js"></script>
@@ -38,8 +38,9 @@
 
   /* 가운데 큰 글자 (카운트다운 · 안내) */
   .center { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
-  .big { font-family: var(--f-num); font-weight: 700; font-size: clamp(6rem, 26vw, 19rem); line-height: 1; color: #fff; -webkit-text-stroke: 4px #16213a; paint-order: stroke; }
-  .big.pop { animation: pop .3s ease-out; }
+  /* .center 안으로 한정: 그냥 .big 이면 ‘카메라로 시작’ 같은 .btn.big 버튼 글자에도 흰색·굵은 테두리가 입혀짐 */
+  .center .big { font-family: var(--f-num); font-weight: 700; font-size: clamp(6rem, 26vw, 19rem); line-height: 1; color: #fff; -webkit-text-stroke: 4px #16213a; paint-order: stroke; }
+  .center .big.pop { animation: pop .3s ease-out; }
   @keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
   .float { position: absolute; font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(1.3rem, 3vw, 2.3rem); color: #fff; -webkit-text-stroke: 2px #16213a; paint-order: stroke; animation: rise 1s forwards; pointer-events: none; }
   @keyframes rise { to { transform: translateY(-70px); opacity: 0; } }
@@ -68,6 +69,15 @@
   .pads button:active { transform: scale(.96); background: var(--bg-3); }
   .pads .jump { background: var(--red); border-color: var(--red); color: #fff; }
   .under { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+  /* 손가락으로 쓰는 기기에서 화면 버튼이 나와 있는 동안(run.js 가 .pads-on 을 붙임): 경기장을 그만큼 줄이고 키보드 설명은 접어서,
+     화면을 내리지 않아도 버튼과 숫자판이 함께 보이게 함. svh 는 주소창이 보일 때의 높이 (모르는 브라우저는 윗줄의 vh 를 씀) */
+  @media (pointer: coarse) {
+    .run-page.pads-on .under { display: none; }
+    .run-page.pads-on .arena:not(:fullscreen) { max-height: max(200px, calc(100vh - 250px)); max-height: max(200px, calc(100svh - 250px)); }
+  }
+  @media (pointer: coarse) and (max-width: 900px) and (orientation: portrait) {
+    .run-page.pads-on .arena:not(:fullscreen) { max-height: none; height: max(200px, min(calc(100vh - 250px), 720px)); height: max(200px, min(calc(100svh - 250px), 720px)); }
+  }
 </style>
 </head>
 <body>

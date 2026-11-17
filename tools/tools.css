@@ -1,5 +1,5 @@
 /* 기합 — 수업 도구 */
-.tb-title { font-size: 1.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 윗줄 제목(.tb-title) 모양은 base.css 가 맡음. 여기서 크기를 다시 정하면 좁은 화면에서 제목을 줄이는 base.css 규칙을 덮어써 버림 */
 
 .tabs {
   display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px; scrollbar-width: none;
@@ -42,6 +42,7 @@
 .wrap4 > .field { flex: 1 1 calc(50% - 10px); }
 .field.mini { flex: 1 1 90px; min-width: 80px; }
 .field.mini input { width: 100%; }
+.field input:disabled { opacity: .5; }   /* 인터벌이 도는 동안 잠가 둔 칸 */
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .check { display: inline-flex; align-items: center; gap: .5em; font-weight: 700; min-height: 48px; cursor: pointer; }
 .check input { width: 22px; height: 22px; accent-color: var(--red); }
@@ -92,16 +93,17 @@
 .dice-result { font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(1.6rem, 5vw, 3rem); min-height: 1.3em; }
 
 /* 랜덤 뽑기 */
-.draw-show { font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(2.6rem, 10vw, 7rem); line-height: 1.1; word-break: keep-all; }
+/* 이름은 띄어쓰기에서 줄을 바꾸되(keep-all), 한 낱말이 무대보다 길면 양옆이 잘리지 않게 낱말 안에서도 줄을 바꿈(anywhere) */
+.draw-show { font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(2.6rem, 10vw, 7rem); line-height: 1.1; word-break: keep-all; overflow-wrap: anywhere; max-width: 100%; }
 .draw-show.spin { color: var(--muted); }
 .draw-show.hit { color: var(--red); animation: pop .4s; }
 @keyframes pop { 0% { transform: scale(.6); } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
 .draw-many { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; font-size: clamp(1.6rem, 5vw, 3rem); }
-.draw-many span { padding: .15em .6em; border-radius: 14px; background: var(--red); color: #fff; }
+.draw-many span { padding: .15em .6em; border-radius: 14px; background: var(--red); color: #fff; max-width: 100%; overflow-wrap: anywhere; }
 .teams { display: grid; gap: 12px; width: 100%; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .team { border-radius: 16px; padding: 12px; text-align: left; color: #fff; }
 .team h3 { font-size: 1.5rem; margin-bottom: 6px; }
-.team ul { margin: 0; padding-left: 1.1em; font-weight: 700; font-size: 1.1rem; }
+.team ul { margin: 0; padding-left: 1.1em; font-weight: 700; font-size: 1.1rem; overflow-wrap: anywhere; }
 
 /* 토너먼트 */
 .bracket-stage { place-items: stretch; align-content: start; overflow: auto; }
@@ -118,7 +120,9 @@
 .match button.win { background: var(--red); color: #fff; }
 .match button.lose { color: var(--muted); text-decoration: line-through; }
 .match button[disabled] { cursor: default; color: var(--muted); }
-.champ { text-align: center; font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(2rem, 7vw, 4rem); color: var(--red); animation: pop .5s; }
+.match button.win[disabled] { color: #fff; }   /* 부전승으로 올라간 사람도 이긴 사람처럼 빨강 바탕에 흰 글자 (바로 위 규칙에 묻혀 회색이 되지 않게) */
+/* scroll-margin-top: 우승 알림으로 화면을 옮길 때 위에 붙어 있는 윗줄(.topbar) 밑에 가리지 않게 */
+.champ { text-align: center; font-family: var(--f-display); font-weight: 800; letter-spacing: -.02em; font-size: clamp(2rem, 7vw, 4rem); color: var(--red); animation: pop .5s; scroll-margin-top: 88px; }
 .champ small { display: block; font-size: .4em; color: var(--muted); }
 
 /* 반응 신호 */
@@ -166,3 +170,11 @@
 .laps li span:last-child, .laps li span:nth-child(2) { font-family: var(--f-num); font-size: 1.15rem; }
 .die { border-radius: 18%; box-shadow: 0 5px 0 #16213a; }
 .team { border-radius: 12px; }
+
+/* 옛 아이패드(사파리 16.3 이하)는 전체 화면을 :-webkit-full-screen 으로만 알려 주고, 요소 크기도 직접 키워야 함.
+   위의 :fullscreen 규칙과 같은 내용 — 이 이름을 모르는 브라우저가 규칙을 통째로 버리지 않게 따로 적음 */
+.stage:-webkit-full-screen { width: 100%; height: 100%; border-radius: 0; min-height: 100vh; }
+.stage:-webkit-full-screen .big-num { font-size: min(34vw, 62vh); }
+.stage:-webkit-full-screen .ring-wrap { width: min(80vh, 90vw); }
+.stage:-webkit-full-screen .ring-wrap .big-num { font-size: min(18vh, 20vw); }
+.stage:-webkit-full-screen .sig-big { font-size: min(40vw, 55vh); }
