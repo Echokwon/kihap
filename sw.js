@@ -1,10 +1,10 @@
 // 기합 — 오프라인 저장. 파일을 고치면 VERSION 을 올려 주세요.
-const VERSION = 'kihap-v6';
+const VERSION = 'kihap-v7';
 // 바깥에서 받아 오는 큰 파일(글꼴 · 인식 프로그램 · 모델). 주소에 버전이 들어 있어 내용이 바뀌지 않으므로
 // 따로 오래 보관한다 (VERSION 을 올려도 다시 받지 않음).
 const LIBS = 'kihap-libs-1';
 const LIB_RE = /^https:\/\/(fonts\.(googleapis|gstatic)\.com\/|cdn\.jsdelivr\.net\/(gh\/orioncactus\/pretendard@|npm\/(@vladmandic\/human@|jsqr@|qrcode-generator@|@mediapipe\/tasks-vision@))|cdnjs\.cloudflare\.com\/ajax\/libs\/html2canvas\/|storage\.googleapis\.com\/mediapipe-models\/)/;
-const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg',
+const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
   './shared/base.css', './shared/core.js', './shared/icons.js', './shared/db.js',
   './tools/', './tools/tools.css', './tools/tools.js',
   './manage/', './manage/manage.js', './attend/', './attend/attend.js',
