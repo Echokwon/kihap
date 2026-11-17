@@ -168,6 +168,9 @@ table.tbl { border-collapse: collapse; width: 100%; font-size: .95rem; }
 @media print {
   .topbar, .no-print { display: none !important; }
   body { background: #fff; color: #000; }
+  /* 어두운 테마로 쓰다가 인쇄해도 흰 종이에 검은 글씨가 나오게, 인쇄할 때는 색을 밝은 테마 값으로 되돌림
+     (선택자를 세 번 겹쳐 쓴 것은 어두운 테마 규칙보다 우선하게 하려는 것) */
+  :root:root:root { --bg: #fff; --bg-2: #fff; --bg-3: #f1f1f1; --ink: #111; --muted: #555; --line: #aaa; --shadow: none; color-scheme: light; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -177,6 +180,9 @@ table.tbl { border-collapse: collapse; width: 100%; font-size: .95rem; }
 /* 맨 위 층(popover)에 올린 덮개(알림·창·카드): 브라우저가 기본으로 주는 테두리·여백·크기를 지움.
    :where 라서 각 덮개의 자기 스타일(.toast, .modal-back …)이 항상 이보다 우선함 */
 :where(.k-top) { inset: auto; width: auto; height: auto; margin: 0; border: 0; padding: 0; overflow: visible; color: inherit; background: none; }
+/* 덮개는 전체 화면 요소 안에 붙기도 한다 → 그 요소의 글자 모양(흰 글씨 · 큰 글씨 · 가운데 정렬 · 선택 막기)을 물려받지 않게 */
+.modal-back, .toast { font-family: var(--f-body); font-size: 1rem; line-height: 1.5; letter-spacing: normal; text-align: start; text-transform: none; white-space: normal; cursor: auto; -webkit-text-stroke: 0; }
+.modal-back { color: var(--ink); font-weight: 400; user-select: text; -webkit-user-select: text; pointer-events: auto; }
 
 /* 격자 안의 칸이 내용(가로로 긴 탭·표)만큼 넓어져 화면 밖으로 밀려나지 않게 */
 .page > * { min-width: 0; }

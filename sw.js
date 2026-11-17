@@ -1,5 +1,5 @@
 // 기합 — 오프라인 저장. 파일을 고치면 VERSION 을 올려 주세요.
-const VERSION = 'kihap-v5';
+const VERSION = 'kihap-v6';
 // 바깥에서 받아 오는 큰 파일(글꼴 · 인식 프로그램 · 모델). 주소에 버전이 들어 있어 내용이 바뀌지 않으므로
 // 따로 오래 보관한다 (VERSION 을 올려도 다시 받지 않음).
 const LIBS = 'kihap-libs-1';

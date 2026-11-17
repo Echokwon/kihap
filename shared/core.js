@@ -159,26 +159,37 @@
     try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = 'ko-KR'; u.rate = 1.05; speechSynthesis.speak(u); } catch (e) {}
   };
 
-  /* ---------- 맨 위 층에 띄우기 ---------- */
-  // 전체 화면 중에는 그 요소 밖에 붙인 알림·창이 가려진다.
-  // 브라우저의 '맨 위 층'(popover)에 올리면 전체 화면 위에도 보이고, 화면을 다시 그려도 지워지지 않는다.
+  /* ---------- 덮개(알림 · 창 · 카드) 띄우기 ---------- */
+  // 한 요소만 전체 화면일 때 브라우저는 그 요소 '밖'에 있는 것을 (1) 가리고 (2) 눌리지도 않게 막는다.
+  // 맨 위 층(popover)에 올리면 보이기는 하지만 여전히 눌리지 않는다 — 실제 전체 화면에서 확인함.
+  // 그래서 전체 화면일 때는 덮개를 그 요소 '안'에 붙이고(→ 눌림), 그리는 순서만 popover 로 맨 위에 둔다(→ 보임).
   const canTop = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype;
   const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+  const hostNow = () => { const fs = fsEl(); return fs && fs !== document.documentElement ? fs : document.body; };
+  const kept = new Set();                      // 지금 떠 있어야 하는 덮개들
   K.overlay = el => {
+    const host = hostNow();
+    if (el.parentNode !== host) host.appendChild(el);
     if (canTop) {
       el.setAttribute('popover', 'manual'); el.classList.add('k-top');
-      if (!el.isConnected) document.body.appendChild(el);
       try { if (el.matches(':popover-open')) el.hidePopover(); el.showPopover(); } catch (e) {}
-    } else {                                   // 옛 브라우저: 전체 화면 요소 안에 붙이는 것으로 대신함
-      const fs = fsEl(), host = fs && fs !== document.documentElement ? fs : document.body;
-      if (el.parentNode !== host) host.appendChild(el);
     }
+    if (!el._kWrap) {                          // 일부러 지우는 것(el.remove())만 '닫힘'으로 침
+      el._kWrap = true; const rm = el.remove.bind(el);
+      el.remove = () => { kept.delete(el); rm(); };
+    }
+    kept.add(el);
     return el;
   };
-  // 전체 화면을 켜거나 끄면, 떠 있던 것들을 다시 맨 위로
-  const reTop = () => document.querySelectorAll('.k-top, .modal-back, .toast.show').forEach(el => K.overlay(el));
+  // 전체 화면을 켜거나 끄면, 떠 있던 덮개를 알맞은 자리로 옮기고 다시 맨 위로
+  const reTop = () => kept.forEach(el => { if (el.isConnected) K.overlay(el); });
   document.addEventListener('fullscreenchange', reTop);
   document.addEventListener('webkitfullscreenchange', reTop);
+  // 전체 화면 요소 안을 통째로 다시 그리는 화면(몸으로 말해요 · 탑 오르기)에서는 덮개도 같이 지워진다 → 되살림
+  if (typeof MutationObserver !== 'undefined') {
+    new MutationObserver(() => { if (kept.size) kept.forEach(el => { if (!el.isConnected) K.overlay(el); }); })
+      .observe(document.documentElement, { childList: true, subtree: true });
+  }
 
   /* ---------- 알림 문구 ---------- */
   K.toast = (msg, ms = 1800) => {
